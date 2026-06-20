@@ -18,7 +18,6 @@
     <ul>
       <li><a href="#" data-page="dashboard" class="active"><span class="icon">🏠</span>ダッシュボード</a></li>
       <li><a href="#" data-page="projects"><span class="icon">📁</span>受注管理</a></li>
-      <li><a href="#" data-page="quotes"><span class="icon">📋</span>見積もり</a></li>
       <li><a href="#" data-page="finance"><span class="icon">💴</span>財務管理</a></li>
     </ul>
   </nav>
@@ -294,39 +293,13 @@
     </div>
   </div>
 
-  <!-- 見積もり管理 -->
-  <div id="page-quotes" class="page">
-    <div class="page-header">
-      <div><h2>見積もり管理</h2></div>
-      <button class="btn btn-primary" onclick="openQuoteModal()">+ 見積もりを追加</button>
-    </div>
-    <div style="padding: 20px 28px 0;">
-      <div class="cards cards-4">
-        <div class="card"><div class="card-label">全件</div><div class="card-value" id="qt-total">—</div></div>
-        <div class="card card-accent"><div class="card-label">承認済</div><div class="card-value" id="qt-accepted">—</div></div>
-        <div class="card card-warning"><div class="card-label">送付済</div><div class="card-value" id="qt-sent">—</div></div>
-        <div class="card"><div class="card-label">合計金額（税込）</div><div class="card-value" id="qt-total-amount">—</div></div>
-      </div>
-    </div>
-    <div style="padding: 0 28px;">
-      <div class="section">
-        <div class="section-header"><h3>見積もり一覧</h3></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>案件</th><th>顧客</th><th>金額（税込）</th><th>ステータス</th><th>発行日</th><th>有効期限</th><th>PDF</th><th></th></tr></thead>
-            <tbody id="quotes-table-body"><tr><td colspan="8" class="loading">読み込み中...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- 財務管理 -->
   <div id="page-finance" class="page">
     <div class="page-header">
       <div><h2>財務管理</h2></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-primary" onclick="openInvoiceModal()">+ 請求を追加</button>
+        <button class="btn btn-primary" onclick="openQuoteModal()">+ 見積を追加</button>
         <button class="btn btn-ghost" onclick="openExpenseModal()">+ 経費を追加</button>
       </div>
     </div>
@@ -340,11 +313,21 @@
     </div>
     <div style="padding: 0 28px;">
       <div class="section" style="margin-bottom:16px;">
-        <div class="section-header"><h3>請求一覧</h3></div>
+        <div class="section-header">
+          <h3>請求・見積一覧</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="fi-doc-filter" class="btn btn-ghost btn-sm" onchange="renderInvoicesQuotesTable()">
+              <option value="">すべて</option>
+              <option value="invoice">請求のみ</option>
+              <option value="quote">見積のみ</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="loadFinance()">更新</button>
+          </div>
+        </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>案件</th><th>顧客</th><th>金額（税込）</th><th>ステータス</th><th>発行日</th><th>支払期限</th><th>PDF</th><th></th></tr></thead>
-            <tbody id="invoices-table-body"><tr><td colspan="7" class="loading">読み込み中...</td></tr></tbody>
+            <thead><tr><th>種別</th><th>顧客</th><th>案件</th><th>金額（税込）</th><th>ステータス</th><th>発行日</th><th>期日/期限</th><th>PDF</th><th></th></tr></thead>
+            <tbody id="invoices-quotes-body"><tr><td colspan="9" class="loading">読み込み中...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -443,11 +426,19 @@
       <div class="form-row">
         <div class="form-group">
           <label>顧客</label>
-          <select id="invoice-client" onchange="filterInvoiceProjects()"></select>
+          <input type="text" id="invoice-client-name" list="invoice-client-datalist"
+                 autocomplete="off" placeholder="顧客名（フリー入力）">
+          <datalist id="invoice-client-datalist"></datalist>
+          <label class="save-client-label">
+            <input type="checkbox" id="invoice-save-client">
+            この顧客名を保存する
+          </label>
         </div>
         <div class="form-group">
           <label>案件</label>
-          <select id="invoice-project"><option value="">— 選択 —</option></select>
+          <input type="text" id="invoice-project-name" list="invoice-project-datalist"
+                 autocomplete="off" placeholder="案件名（フリー入力）">
+          <datalist id="invoice-project-datalist"></datalist>
         </div>
       </div>
       <div class="form-row">
@@ -515,11 +506,11 @@
   </div>
 </div>
 
-<!-- ========== モーダル：見積もり ========== -->
+<!-- ========== モーダル：見積 ========== -->
 <div class="modal-overlay" id="modal-quote">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="modal-quote-title">見積もりを追加</h3>
+      <h3 id="modal-quote-title">見積を追加</h3>
       <button class="modal-close" onclick="closeModal('modal-quote')">✕</button>
     </div>
     <div class="modal-body">
@@ -527,11 +518,19 @@
       <div class="form-row">
         <div class="form-group">
           <label>顧客</label>
-          <select id="quote-client" onchange="filterQuoteProjects()"></select>
+          <input type="text" id="quote-client-name" list="quote-client-datalist"
+                 autocomplete="off" placeholder="顧客名（フリー入力）">
+          <datalist id="quote-client-datalist"></datalist>
+          <label class="save-client-label">
+            <input type="checkbox" id="quote-save-client">
+            この顧客名を保存する
+          </label>
         </div>
         <div class="form-group">
           <label>案件</label>
-          <select id="quote-project"><option value="">— 選択 —</option></select>
+          <input type="text" id="quote-project-name" list="quote-project-datalist"
+                 autocomplete="off" placeholder="案件名（フリー入力）">
+          <datalist id="quote-project-datalist"></datalist>
         </div>
       </div>
       <div class="form-row">

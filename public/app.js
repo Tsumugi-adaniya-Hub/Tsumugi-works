@@ -30,7 +30,6 @@ function loadPage(page) {
   if (page === 'dashboard') loadDashboard();
   else if (page === 'clients')  loadClients();
   else if (page === 'projects') loadProjects();
-  else if (page === 'quotes')   loadQuotes();
   else if (page === 'finance')  loadFinance();
 }
 
@@ -522,14 +521,15 @@ async function deleteProject(id) {
 // 財務
 // ============================================================
 async function loadFinance() {
-  [_invoices, _expenses, _clients, _projects] = await Promise.all([
+  [_invoices, _expenses, _clients, _projects, _quotes] = await Promise.all([
     fetchJSON('/api/invoices'),
     fetchJSON('/api/expenses'),
     fetchJSON('/api/clients'),
     fetchJSON('/api/projects'),
+    fetchJSON('/api/quotes'),
   ]);
   updateFinanceStats();
-  renderInvoicesTable();
+  renderInvoicesQuotesTable();
   renderExpensesTable();
 }
 
@@ -545,31 +545,86 @@ function updateFinanceStats() {
   setText('fi-profit',   '¥' + fmt(Math.round(paid) - exp));
 }
 
-function renderInvoicesTable() {
-  const tbody = document.getElementById('invoices-table-body');
-  if (!_invoices.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">請求がありません</td></tr>';
+// 請求・見積 統合テーブル
+function renderInvoicesQuotesTable() {
+  const tbody = document.getElementById('invoices-quotes-body');
+  const filter = document.getElementById('fi-doc-filter')?.value ?? '';
+
+  let rows = [];
+  if (filter !== 'quote') {
+    rows = rows.concat(_invoices.map(i => ({ ...i, _type: 'invoice' })));
+  }
+  if (filter !== 'invoice') {
+    rows = rows.concat(_quotes.map(q => ({ ...q, _type: 'quote' })));
+  }
+
+  // 発行日の新しい順
+  rows.sort((a, b) => {
+    const da = a.issue_date ?? '';
+    const db = b.issue_date ?? '';
+    return db.localeCompare(da);
+  });
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">${filter === 'invoice' ? '請求' : filter === 'quote' ? '見積' : '請求・見積'}がありません</td></tr>`;
     return;
   }
-  tbody.innerHTML = _invoices.map(i => `
-    <tr>
-      <td>${esc(i.projects?.title ?? '—')}</td>
-      <td>${esc(i.clients?.name ?? '—')}</td>
-      <td>¥${fmt(Math.round(Number(i.amount) * (1 + Number(i.tax_rate)/100)))}</td>
-      <td>${statusBadge(i.status, 'invoice')}</td>
-      <td>${i.issue_date ? fmtDate(i.issue_date) : '—'}</td>
-      <td>${i.due_date ? fmtDate(i.due_date) : '—'}</td>
-      <td>
-        <button class="btn btn-ghost btn-sm" title="PDF生成＆OneDrive保存" onclick="downloadInvoicePdf('${i.id}')">PDF</button>
-      </td>
-      <td>
-        <div class="actions">
-          <button class="btn btn-ghost btn-sm" onclick="openInvoiceModal('${i.id}')">編集</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteInvoice('${i.id}')">削除</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+
+  tbody.innerHTML = rows.map(row => {
+    const isInvoice = row._type === 'invoice';
+    const typeBadge = isInvoice
+      ? '<span class="badge badge-active" style="font-size:11px;">請求</span>'
+      : '<span class="badge badge-pending" style="font-size:11px;">見積</span>';
+    const statusType = isInvoice ? 'invoice' : 'quote';
+    const statusOptions = isInvoice
+      ? [['draft','下書き'],['sent','送付済'],['paid','入金済'],['overdue','期限超過']]
+      : [['draft','下書き'],['sent','送付済'],['accepted','承認済'],['rejected','却下']];
+    const statusSelect = `<select class="inline-status-select" onchange="${isInvoice ? 'updateInvoiceStatus' : 'updateQuoteStatus'}('${row.id}', this.value)">
+      ${statusOptions.map(([v, l]) => `<option value="${v}"${row.status === v ? ' selected' : ''}>${l}</option>`).join('')}
+    </select>`;
+    const deadline = isInvoice
+      ? (row.due_date ? fmtDate(row.due_date) : '—')
+      : (row.valid_until ? fmtDate(row.valid_until) : '—');
+    const pdfBtn = isInvoice
+      ? `<button class="btn btn-ghost btn-sm" title="PDF生成＆OneDrive保存" onclick="downloadInvoicePdf('${row.id}')">PDF</button>`
+      : `<button class="btn btn-ghost btn-sm" title="PDF生成" onclick="downloadQuotePdf('${row.id}')">PDF</button>`;
+    const actions = isInvoice
+      ? `<button class="btn btn-ghost btn-sm" onclick="openInvoiceModal('${row.id}')">編集</button>
+         <button class="btn btn-danger btn-sm" onclick="deleteInvoice('${row.id}')">削除</button>`
+      : `${row.status !== 'accepted' ? `<button class="btn btn-ghost btn-sm" onclick="convertQuote('${row.id}')">請求書化</button>` : ''}
+         <button class="btn btn-ghost btn-sm" onclick="openQuoteModal('${row.id}')">編集</button>
+         <button class="btn btn-danger btn-sm" onclick="deleteQuote('${row.id}')">削除</button>`;
+
+    return `<tr>
+      <td>${typeBadge}</td>
+      <td>${esc(row.clients?.name ?? '—')}</td>
+      <td>${esc(row.projects?.title ?? '—')}</td>
+      <td>¥${fmt(Math.round(Number(row.amount) * (1 + Number(row.tax_rate)/100)))}</td>
+      <td>${statusSelect}</td>
+      <td>${row.issue_date ? fmtDate(row.issue_date) : '—'}</td>
+      <td>${deadline}</td>
+      <td>${pdfBtn}</td>
+      <td><div class="actions">${actions}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function updateInvoiceStatus(id, status) {
+  const res = await apiFetch(`/api/invoices/${id}`, 'PUT', { status });
+  if (res.error) { toast(res.error, true); loadFinance(); return; }
+  const inv = _invoices.find(i => i.id === id);
+  if (inv) inv.status = status;
+  updateFinanceStats();
+  toast('ステータスを更新しました');
+}
+
+async function updateQuoteStatus(id, status) {
+  const res = await apiFetch(`/api/quotes/${id}`, 'PUT', { status });
+  if (res.error) { toast(res.error, true); loadFinance(); return; }
+  const q = _quotes.find(q => q.id === id);
+  if (q) q.status = status;
+  updateFinanceStats();
+  toast('ステータスを更新しました');
 }
 
 function renderExpensesTable() {
@@ -595,10 +650,18 @@ function renderExpensesTable() {
   `).join('');
 }
 
-function openInvoiceModal(id) {
+async function openInvoiceModal(id) {
   clearForm('modal-invoice', ['invoice-id','invoice-amount','invoice-notes','invoice-issue-date','invoice-due-date']);
-  populateSelect('invoice-client', _clients, 'id', 'name', '— 顧客を選択 —');
-  document.getElementById('invoice-project').innerHTML = '<option value="">— 案件を選択 —</option>';
+  document.getElementById('invoice-client-name').value = '';
+  document.getElementById('invoice-project-name').value = '';
+  document.getElementById('invoice-save-client').checked = false;
+
+  // datalist をセット
+  const saved = await fetchJSON('/api/client-names').catch(() => []);
+  const clientNames = [...new Set([...saved, ..._clients.map(c => c.name)])].sort((a, b) => a.localeCompare(b, 'ja'));
+  document.getElementById('invoice-client-datalist').innerHTML = clientNames.map(n => `<option value="${esc(n)}">`).join('');
+  const projectTitles = _projects.map(p => p.title).sort((a, b) => a.localeCompare(b, 'ja'));
+  document.getElementById('invoice-project-datalist').innerHTML = projectTitles.map(t => `<option value="${esc(t)}">`).join('');
 
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('invoice-issue-date').value = today;
@@ -608,9 +671,8 @@ function openInvoiceModal(id) {
     if (!inv) return;
     document.getElementById('modal-invoice-title').textContent = '請求を編集';
     document.getElementById('invoice-id').value = inv.id;
-    document.getElementById('invoice-client').value = inv.client_id ?? '';
-    filterInvoiceProjects();
-    document.getElementById('invoice-project').value = inv.project_id ?? '';
+    document.getElementById('invoice-client-name').value = inv.clients?.name ?? _clients.find(c => c.id === inv.client_id)?.name ?? '';
+    document.getElementById('invoice-project-name').value = inv.projects?.title ?? _projects.find(p => p.id === inv.project_id)?.title ?? '';
     document.getElementById('invoice-amount').value = inv.amount;
     document.getElementById('invoice-status').value = inv.status;
     document.getElementById('invoice-issue-date').value = inv.issue_date ?? today;
@@ -622,17 +684,37 @@ function openInvoiceModal(id) {
   openModal('modal-invoice');
 }
 
-function filterInvoiceProjects() {
-  const cid = document.getElementById('invoice-client').value;
-  const filtered = cid ? _projects.filter(p => p.client_id === cid) : _projects;
-  populateSelect('invoice-project', filtered, 'id', 'title', '— 案件を選択 —');
-}
-
 async function saveInvoice() {
   const id = document.getElementById('invoice-id').value;
+  const clientNameInput = document.getElementById('invoice-client-name').value.trim();
+  const projectNameInput = document.getElementById('invoice-project-name').value.trim();
+  const saveClientFlag   = document.getElementById('invoice-save-client').checked;
+
+  // 顧客名 → client_id
+  let clientId = null;
+  if (clientNameInput) {
+    const existing = _clients.find(c => c.name === clientNameInput);
+    if (existing) {
+      clientId = existing.id;
+    } else if (saveClientFlag) {
+      const newClient = await apiFetch('/api/clients', 'POST', { name: clientNameInput });
+      if (!newClient.error) { clientId = newClient.id; _clients.push(newClient); }
+    }
+    if (saveClientFlag) {
+      await fetch('/api/client-names', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: clientNameInput }) });
+    }
+  }
+
+  // 案件名 → project_id
+  let projectId = null;
+  if (projectNameInput) {
+    const existing = _projects.find(p => p.title === projectNameInput);
+    if (existing) projectId = existing.id;
+  }
+
   const body = {
-    client_id:  document.getElementById('invoice-client').value || null,
-    project_id: document.getElementById('invoice-project').value || null,
+    client_id:  clientId,
+    project_id: projectId,
     amount:     Number(document.getElementById('invoice-amount').value) || 0,
     status:     document.getElementById('invoice-status').value,
     issue_date: document.getElementById('invoice-issue-date').value || null,
@@ -866,7 +948,7 @@ function toast(msg, isError = false) {
 }
 
 // ============================================================
-// 見積もり
+// 見積
 // ============================================================
 async function loadQuotes() {
   [_quotes, _clients, _projects] = await Promise.all([
@@ -889,7 +971,7 @@ function updateQuoteStats() {
 function renderQuotesTable() {
   const tbody = document.getElementById('quotes-table-body');
   if (!_quotes.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty">見積もりがありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">見積がありません</td></tr>';
     return;
   }
   tbody.innerHTML = _quotes.map(q => `
@@ -914,43 +996,71 @@ function renderQuotesTable() {
   `).join('');
 }
 
-function openQuoteModal(id) {
+async function openQuoteModal(id) {
   clearForm('modal-quote', ['quote-id','quote-amount','quote-notes','quote-issue-date','quote-valid-until']);
-  populateSelect('quote-client', _clients, 'id', 'name', '— 顧客を選択 —');
-  document.getElementById('quote-project').innerHTML = '<option value="">— 案件を選択 —</option>';
+  document.getElementById('quote-client-name').value = '';
+  document.getElementById('quote-project-name').value = '';
+  document.getElementById('quote-save-client').checked = false;
+
+  // datalist をセット
+  const saved = await fetchJSON('/api/client-names').catch(() => []);
+  const clientNames = [...new Set([...saved, ..._clients.map(c => c.name)])].sort((a, b) => a.localeCompare(b, 'ja'));
+  document.getElementById('quote-client-datalist').innerHTML = clientNames.map(n => `<option value="${esc(n)}">`).join('');
+  const projectTitles = _projects.map(p => p.title).sort((a, b) => a.localeCompare(b, 'ja'));
+  document.getElementById('quote-project-datalist').innerHTML = projectTitles.map(t => `<option value="${esc(t)}">`).join('');
+
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('quote-issue-date').value = today;
 
   if (id) {
     const q = _quotes.find(q => q.id === id);
     if (!q) return;
-    document.getElementById('modal-quote-title').textContent = '見積もりを編集';
+    document.getElementById('modal-quote-title').textContent = '見積を編集';
     document.getElementById('quote-id').value = q.id;
-    document.getElementById('quote-client').value = q.client_id ?? '';
-    filterQuoteProjects();
-    document.getElementById('quote-project').value = q.project_id ?? '';
+    document.getElementById('quote-client-name').value = q.clients?.name ?? _clients.find(c => c.id === q.client_id)?.name ?? '';
+    document.getElementById('quote-project-name').value = q.projects?.title ?? _projects.find(p => p.id === q.project_id)?.title ?? '';
     document.getElementById('quote-amount').value = q.amount;
     document.getElementById('quote-status').value = q.status;
     document.getElementById('quote-issue-date').value = q.issue_date ?? today;
     document.getElementById('quote-valid-until').value = q.valid_until ?? '';
     document.getElementById('quote-notes').value = q.notes ?? '';
   } else {
-    document.getElementById('modal-quote-title').textContent = '見積もりを追加';
+    document.getElementById('modal-quote-title').textContent = '見積を追加';
   }
   openModal('modal-quote');
 }
 
-function filterQuoteProjects() {
-  const cid = document.getElementById('quote-client').value;
-  const filtered = cid ? _projects.filter(p => p.client_id === cid) : _projects;
-  populateSelect('quote-project', filtered, 'id', 'title', '— 案件を選択 —');
-}
-
 async function saveQuote() {
   const id = document.getElementById('quote-id').value;
+  const clientNameInput = document.getElementById('quote-client-name').value.trim();
+  const projectNameInput = document.getElementById('quote-project-name').value.trim();
+  const saveClientFlag   = document.getElementById('quote-save-client').checked;
+
+  // 顧客名 → client_id
+  let clientId = null;
+  if (clientNameInput) {
+    const existing = _clients.find(c => c.name === clientNameInput);
+    if (existing) {
+      clientId = existing.id;
+    } else if (saveClientFlag) {
+      const newClient = await apiFetch('/api/clients', 'POST', { name: clientNameInput });
+      if (!newClient.error) { clientId = newClient.id; _clients.push(newClient); }
+    }
+    if (saveClientFlag) {
+      await fetch('/api/client-names', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: clientNameInput }) });
+    }
+  }
+
+  // 案件名 → project_id
+  let projectId = null;
+  if (projectNameInput) {
+    const existing = _projects.find(p => p.title === projectNameInput);
+    if (existing) projectId = existing.id;
+  }
+
   const body = {
-    client_id:   document.getElementById('quote-client').value || null,
-    project_id:  document.getElementById('quote-project').value || null,
+    client_id:   clientId,
+    project_id:  projectId,
     amount:      Number(document.getElementById('quote-amount').value) || 0,
     status:      document.getElementById('quote-status').value,
     issue_date:  document.getElementById('quote-issue-date').value || null,
@@ -963,23 +1073,23 @@ async function saveQuote() {
   const res = await apiFetch(url, method, body);
   if (res.error) return toast(res.error, true);
   closeModal('modal-quote');
-  toast(id ? '見積もりを更新しました' : '見積もりを追加しました');
-  loadQuotes();
+  toast(id ? '見積を更新しました' : '見積を追加しました');
+  loadFinance();
 }
 
 async function deleteQuote(id) {
-  if (!confirm('この見積もりを削除しますか？')) return;
+  if (!confirm('この見積を削除しますか？')) return;
   await apiFetch(`/api/quotes/${id}`, 'DELETE');
   toast('削除しました');
-  loadQuotes();
+  loadFinance();
 }
 
 async function convertQuote(id) {
-  if (!confirm('この見積もりを請求書に変換しますか？')) return;
+  if (!confirm('この見積を請求書に変換しますか？')) return;
   const res = await apiFetch(`/api/quotes/${id}/convert`, 'POST');
   if (res.error) return toast(res.error, true);
-  toast('請求書を作成しました。財務管理で確認できます。');
-  loadQuotes();
+  toast('請求書を作成しました。');
+  loadFinance();
 }
 
 async function downloadQuotePdf(id) {

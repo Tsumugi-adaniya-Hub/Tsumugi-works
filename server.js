@@ -32,7 +32,7 @@ if (process.env.BASIC_AUTH_USER && process.env.BASIC_AUTH_PASS) {
   app.use(basicAuth({
     users: { [process.env.BASIC_AUTH_USER]: process.env.BASIC_AUTH_PASS },
     challenge: true,
-    realm: 'つむぎワークス',
+    realm: 'TsumugiWorks',
   }));
 }
 

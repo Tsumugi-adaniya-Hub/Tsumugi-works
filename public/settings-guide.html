@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>外部サービス接続設定 — つむぎワークス</title>
+  <style>
+    body { font-family: -apple-system, 'Helvetica Neue', sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #222; line-height: 1.7; }
+    h1 { font-size: 22px; border-bottom: 2px solid #e0e0e0; padding-bottom: 12px; }
+    h2 { font-size: 16px; margin-top: 32px; background: #f5f5f5; padding: 8px 14px; border-radius: 6px; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    pre { background: #f8f8f8; border: 1px solid #ddd; padding: 14px 18px; border-radius: 8px; font-size: 13px; overflow-x: auto; }
+    a { color: #4a90e2; }
+    .step { counter-increment: step; }
+    ol { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    .note { background: #fffbe6; border-left: 4px solid #f0b429; padding: 10px 14px; border-radius: 4px; font-size: 13px; margin: 12px 0; }
+  </style>
+</head>
+<body>
+<h1>外部サービス接続設定</h1>
+<p>アプリのルートにある <code>.env</code> ファイルを編集して設定します。変更後は <strong>npm start を再起動</strong>してください。</p>
+
+<h2>1. Notion（タスク連携）</h2>
+<ol>
+  <li><a href="https://www.notion.so/my-integrations" target="_blank">https://www.notion.so/my-integrations</a> を開く</li>
+  <li>「+ 新しいインテグレーション」をクリック</li>
+  <li>名前を入力（例: つむぎワークス管理アプリ）→ 送信</li>
+  <li>「シークレット」欄の <code>secret_xxxx</code> をコピー</li>
+  <li>Notionで連携したいタスクDBを開き、右上「…」→「接続」→ 作成したインテグレーションを追加</li>
+  <li>DBページのURLから ID を取得（例: <code>notion.so/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx?v=...</code> の <code>xxx...xxx</code> 部分32文字）</li>
+</ol>
+<pre>
+NOTION_TOKEN=secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NOTION_TASKS_DB_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+</pre>
+
+<h2>2. Google カレンダー</h2>
+<ol>
+  <li><a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> を開く → プロジェクトを作成（または既存を選択）</li>
+  <li>「APIとサービス」→「ライブラリ」→「Google Calendar API」を有効化</li>
+  <li>「APIとサービス」→「認証情報」→「認証情報を作成」→「OAuth 2.0 クライアント ID」</li>
+  <li>アプリケーションの種類: <strong>ウェブアプリケーション</strong></li>
+  <li>承認済みのリダイレクト URI に <code>http://localhost:3000/auth/google/callback</code> を追加</li>
+  <li>クライアントID・クライアントシークレットをコピー</li>
+</ol>
+<pre>
+GOOGLE_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxx
+</pre>
+<div class="note">
+  設定後、npm start で起動してから <a href="/auth/google" target="_blank">http://localhost:3000/auth/google</a> を開いてGoogleアカウントで認証してください。<br>
+  認証は初回のみ必要です（トークンはアプリ内に保存されます）。
+</div>
+
+<h2>3. Freee 会計（今後対応予定）</h2>
+<p>現在は設定待ちです。Freee API との連携は次のバージョンで対応します。</p>
+<p>今は Supabase に手動で入力した請求書・経費データが財務管理画面に表示されます。</p>
+
+<hr style="margin-top:40px; border:none; border-top:1px solid #e0e0e0;">
+<p style="font-size:12px; color:#888; text-align:center;">つむぎワークス 運営管理アプリ</p>
+</body>
+</html>

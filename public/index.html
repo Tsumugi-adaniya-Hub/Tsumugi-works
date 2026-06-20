@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>つむぎワークス 運営管理</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- サイドバー -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h1>つむぎワークス</h1>
+    <p>運営管理アプリ</p>
+  </div>
+  <nav>
+    <ul>
+      <li><a href="#" data-page="dashboard" class="active"><span class="icon">🏠</span>ダッシュボード</a></li>
+      <li><a href="#" data-page="projects"><span class="icon">📁</span>受注管理</a></li>
+      <li><a href="#" data-page="quotes"><span class="icon">📋</span>見積もり</a></li>
+      <li><a href="#" data-page="finance"><span class="icon">💴</span>財務管理</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<!-- メインコンテンツ -->
+<main id="main">
+
+  <!-- ダッシュボード -->
+  <div id="page-dashboard" class="page active">
+    <div class="page-header">
+      <div><h2>ダッシュボード</h2><p id="dashboard-date"></p></div>
+    </div>
+
+    <!-- 3/4 + 1/4 グリッド -->
+    <div id="dash-grid">
+
+      <!-- 左 3/4 -->
+      <div id="dash-main">
+        <div style="padding: 20px 28px 0 28px;">
+          <div class="cards cards-4" id="dash-cards">
+            <div class="card"><div class="card-label">顧客数</div><div class="card-value" id="dc-clients">—</div></div>
+            <div class="card card-accent"><div class="card-label">進行中案件</div><div class="card-value" id="dc-active">—</div></div>
+            <div class="card card-info"><div class="card-label">入金済売上（税込）</div><div class="card-value" id="dc-paid">—</div></div>
+            <div class="card card-warning"><div class="card-label">未収金（税込）</div><div class="card-value" id="dc-unpaid">—</div></div>
+          </div>
+          <div class="cards cards-2">
+            <div class="card"><div class="card-label">総経費</div><div class="card-value" id="dc-expenses">—</div></div>
+            <div class="card card-accent"><div class="card-label">利益（入金済−経費）</div><div class="card-value" id="dc-profit">—</div></div>
+          </div>
+        </div>
+        <div style="padding: 0 28px;">
+          <!-- 外部サービス接続バナー -->
+          <div id="ext-setup-banner" style="display:none; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-bottom:16px;">
+            <div style="font-weight:600; margin-bottom:8px; font-size:14px;">外部サービス未接続</div>
+            <div id="ext-setup-items" style="font-size:13px; color:var(--text-muted); line-height:1.8;"></div>
+          </div>
+
+          <!-- 2カラム: カレンダー / Notionタスク -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div class="section" style="margin-bottom:0;">
+              <div class="section-header">
+                <h3>今後の予定 <span style="font-size:11px; font-weight:400; color:var(--text-muted); margin-left:4px;">Googleカレンダー</span></h3>
+                <button class="btn btn-ghost btn-sm" onclick="loadCalendarEvents()">更新</button>
+              </div>
+              <div id="cal-events-list" style="padding:8px 20px; font-size:13px; color:var(--text-muted);">読み込み中...</div>
+            </div>
+            <div class="section" style="margin-bottom:0;">
+              <div class="section-header">
+                <h3>タスク <span style="font-size:11px; font-weight:400; color:var(--text-muted); margin-left:4px;">Notion</span></h3>
+                <button class="btn btn-ghost btn-sm" onclick="loadNotionTasks()">更新</button>
+              </div>
+              <div id="notion-tasks-list" style="padding:8px 20px; font-size:13px; color:var(--text-muted);">読み込み中...</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-header"><h3>最近の受注</h3></div>
+            <div class="table-wrap">
+              <table id="dash-projects-table">
+                <thead><tr><th>案件名</th><th>顧客</th><th>ステータス</th><th>予算</th></tr></thead>
+                <tbody id="dash-projects-body"><tr><td colspan="4" class="loading">読み込み中...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /dash-main -->
+
+      <!-- 右 1/4 ニュースパネル -->
+      <div id="dash-news">
+        <div class="section" style="margin:16px 16px 0 0; height:calc(100% - 16px); display:flex; flex-direction:column;">
+          <div class="section-header" style="flex-shrink:0;">
+            <h3>ビジネスニュース</h3>
+            <button class="btn btn-ghost btn-sm" onclick="loadNewsPanel()">更新</button>
+          </div>
+          <!-- 当日ニュース -->
+          <div id="news-today" style="flex:1; overflow-y:auto; padding:12px 16px; font-size:12.5px; line-height:1.75; color:var(--text-muted);">
+            読み込み中...
+          </div>
+          <!-- 過去6日 タブ -->
+          <div id="news-history" style="flex-shrink:0; border-top:1px solid var(--border); padding:10px 16px;">
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">過去の記事</div>
+            <div id="news-history-list" style="display:flex; flex-direction:column; gap:4px;"></div>
+          </div>
+        </div>
+      </div><!-- /dash-news -->
+
+    </div><!-- /dash-grid -->
+  </div>
+
+  <!-- 顧客カードモーダル -->
+  <div id="modal-client-card" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-client-card')">
+    <div class="modal" style="width:460px; max-width:95vw;">
+      <div class="modal-header">
+        <h3 id="cc-name">顧客情報</h3>
+        <button class="modal-close" onclick="closeModal('modal-client-card')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px 24px;">
+        <div style="display:grid; gap:14px;">
+          <div class="client-card-row">
+            <span class="client-card-label">会社名 / 屋号</span>
+            <span id="cc-company" class="client-card-value"></span>
+          </div>
+          <div class="client-card-row">
+            <span class="client-card-label">担当者名</span>
+            <span id="cc-contact" class="client-card-value"></span>
+          </div>
+          <div class="client-card-row">
+            <span class="client-card-label">メール</span>
+            <span id="cc-email" class="client-card-value"></span>
+          </div>
+          <div class="client-card-row">
+            <span class="client-card-label">電話</span>
+            <span id="cc-phone" class="client-card-value"></span>
+          </div>
+          <div class="client-card-row">
+            <span class="client-card-label">住所</span>
+            <span id="cc-address" class="client-card-value"></span>
+          </div>
+          <div class="client-card-row" id="cc-notes-row">
+            <span class="client-card-label">備考</span>
+            <span id="cc-notes" class="client-card-value" style="white-space:pre-wrap;"></span>
+          </div>
+          <div class="client-card-row">
+            <span class="client-card-label">登録日</span>
+            <span id="cc-created" class="client-card-value"></span>
+          </div>
+        </div>
+        <!-- 関連案件 -->
+        <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+          <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:10px;">関連案件</div>
+          <div id="cc-projects" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-sm" id="cc-edit-btn">編集</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ニュース詳細モーダル -->
+  <div id="modal-news" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-news')">
+    <div class="modal" style="max-width:680px; width:680px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden;">
+      <div class="modal-header" style="flex-shrink:0;">
+        <h3 id="modal-news-title">記事</h3>
+        <button class="modal-close" onclick="closeModal('modal-news')">&times;</button>
+      </div>
+      <div id="modal-news-body" style="flex:1; overflow-y:auto; padding:20px 24px; font-size:14px; line-height:1.85;"></div>
+    </div>
+  </div>
+
+  <!-- 顧客管理（非表示・データ保持） -->
+  <div id="page-clients" class="page" style="display:none !important;">
+    <div class="page-header">
+      <div><h2>顧客管理</h2></div>
+      <button class="btn btn-primary" onclick="openClientModal()">+ 顧客を追加</button>
+    </div>
+    <div style="padding: 20px 28px 0;">
+      <div class="cards cards-3">
+        <div class="card"><div class="card-label">総顧客数</div><div class="card-value card-accent" id="cl-total">—</div></div>
+        <div class="card"><div class="card-label">案件保有顧客</div><div class="card-value" id="cl-with-projects">—</div></div>
+        <div class="card"><div class="card-label">今月追加</div><div class="card-value" id="cl-this-month">—</div></div>
+      </div>
+    </div>
+    <div style="padding: 0 28px;">
+      <div class="section" id="client-docs-section" style="display:none; margin-bottom:16px;">
+        <div class="section-header">
+          <h3 id="client-docs-title">書類</h3>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('client-docs-section').style.display='none'">閉じる</button>
+        </div>
+        <div style="padding:16px 20px;">
+          <div class="upload-area" id="client-upload-area" onclick="document.getElementById('client-file-input').click()"
+            style="border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;cursor:pointer;color:var(--text-muted);transition:border-color .15s;"
+            ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+            ondragleave="this.style.borderColor='var(--border)'"
+            ondrop="handleFileDrop(event,'client')">
+            <div style="font-size:24px">📎</div>
+            <div style="font-size:13px;margin-top:6px">クリックまたはドラッグ＆ドロップ</div>
+            <div style="font-size:11px;margin-top:4px;color:var(--text-muted)">PDF・Word・画像 など（最大20MB）</div>
+          </div>
+          <input type="file" id="client-file-input" style="display:none" onchange="uploadFile('client')">
+        </div>
+        <div class="table-wrap" id="client-docs-table-wrap">
+          <table>
+            <thead><tr><th>ファイル名</th><th>保存日</th><th></th></tr></thead>
+            <tbody id="client-docs-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><h3>顧客一覧</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>顧客名</th><th>メール</th><th>電話</th><th>登録日</th><th></th></tr></thead>
+            <tbody id="clients-table-body"><tr><td colspan="5" class="loading">読み込み中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 受注管理 -->
+  <div id="page-projects" class="page">
+    <div class="page-header">
+      <div><h2>受注管理</h2></div>
+      <button class="btn btn-primary" onclick="openProjectModal()">+ 案件を追加</button>
+    </div>
+    <div style="padding: 20px 28px 0;">
+      <div class="cards cards-4">
+        <div class="card"><div class="card-label">全案件</div><div class="card-value" id="pj-total">—</div></div>
+        <div class="card card-accent"><div class="card-label">進行中</div><div class="card-value" id="pj-active">—</div></div>
+        <div class="card card-warning"><div class="card-label">未着手</div><div class="card-value" id="pj-pending">—</div></div>
+        <div class="card card-info"><div class="card-label">完了</div><div class="card-value" id="pj-completed">—</div></div>
+      </div>
+    </div>
+    <div style="padding: 0 28px;">
+      <div class="section" id="project-docs-section" style="display:none; margin-bottom:16px;">
+        <div class="section-header">
+          <h3 id="project-docs-title">書類</h3>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('project-docs-section').style.display='none'">閉じる</button>
+        </div>
+        <div style="padding:16px 20px;">
+          <div class="upload-area" onclick="document.getElementById('project-file-input').click()"
+            style="border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;cursor:pointer;color:var(--text-muted);transition:border-color .15s;"
+            ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+            ondragleave="this.style.borderColor='var(--border)'"
+            ondrop="handleFileDrop(event,'project')">
+            <div style="font-size:24px">📎</div>
+            <div style="font-size:13px;margin-top:6px">クリックまたはドラッグ＆ドロップ</div>
+            <div style="font-size:11px;margin-top:4px;color:var(--text-muted)">PDF・Word・画像 など（最大20MB）</div>
+          </div>
+          <input type="file" id="project-file-input" style="display:none" onchange="uploadFile('project')">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ファイル名</th><th>保存日</th><th></th></tr></thead>
+            <tbody id="project-docs-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Notionデータソースバナー -->
+      <div id="notion-projects-banner" style="display:none; margin-bottom:12px; padding:10px 16px; background:var(--accent-light); border-radius:8px; font-size:12px; color:var(--accent); display:flex; align-items:center; gap:8px;">
+        <span>Notion 案件管理DB と連携中</span>
+        <a id="notion-projects-link" href="#" target="_blank" style="margin-left:auto; color:var(--accent); font-size:11px;">Notionで開く →</a>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <h3>受注一覧</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="project-status-filter" class="btn btn-ghost btn-sm" onchange="renderProjectsTable()">
+              <option value="">すべて</option>
+              <option value="active">進行中</option>
+              <option value="pending">未着手</option>
+              <option value="completed">完了</option>
+              <option value="cancelled">キャンセル</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="loadProjects()">更新</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <!-- Notion モード -->
+          <table id="notion-projects-table" style="display:none;">
+            <thead><tr><th>案件名</th><th>問い合わせ日</th><th>顧客名</th><th>進行度</th><th>入金状況</th><th>納品予定日</th><th></th></tr></thead>
+            <tbody id="notion-projects-body"><tr><td colspan="7" class="loading">読み込み中...</td></tr></tbody>
+          </table>
+          <!-- ローカル（Supabase）モード -->
+          <table id="local-projects-table">
+            <thead><tr><th>案件名</th><th>顧客</th><th>ステータス</th><th>予算</th><th>開始日</th><th></th></tr></thead>
+            <tbody id="projects-table-body"><tr><td colspan="6" class="loading">読み込み中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 見積もり管理 -->
+  <div id="page-quotes" class="page">
+    <div class="page-header">
+      <div><h2>見積もり管理</h2></div>
+      <button class="btn btn-primary" onclick="openQuoteModal()">+ 見積もりを追加</button>
+    </div>
+    <div style="padding: 20px 28px 0;">
+      <div class="cards cards-4">
+        <div class="card"><div class="card-label">全件</div><div class="card-value" id="qt-total">—</div></div>
+        <div class="card card-accent"><div class="card-label">承認済</div><div class="card-value" id="qt-accepted">—</div></div>
+        <div class="card card-warning"><div class="card-label">送付済</div><div class="card-value" id="qt-sent">—</div></div>
+        <div class="card"><div class="card-label">合計金額（税込）</div><div class="card-value" id="qt-total-amount">—</div></div>
+      </div>
+    </div>
+    <div style="padding: 0 28px;">
+      <div class="section">
+        <div class="section-header"><h3>見積もり一覧</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>案件</th><th>顧客</th><th>金額（税込）</th><th>ステータス</th><th>発行日</th><th>有効期限</th><th>PDF</th><th></th></tr></thead>
+            <tbody id="quotes-table-body"><tr><td colspan="8" class="loading">読み込み中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 財務管理 -->
+  <div id="page-finance" class="page">
+    <div class="page-header">
+      <div><h2>財務管理</h2></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="openInvoiceModal()">+ 請求を追加</button>
+        <button class="btn btn-ghost" onclick="openExpenseModal()">+ 経費を追加</button>
+      </div>
+    </div>
+    <div style="padding: 20px 28px 0;">
+      <div class="cards cards-4">
+        <div class="card card-accent"><div class="card-label">入金済（税込）</div><div class="card-value" id="fi-paid">—</div></div>
+        <div class="card card-warning"><div class="card-label">未収金（税込）</div><div class="card-value" id="fi-unpaid">—</div></div>
+        <div class="card"><div class="card-label">総経費</div><div class="card-value" id="fi-expenses">—</div></div>
+        <div class="card card-info"><div class="card-label">利益</div><div class="card-value" id="fi-profit">—</div></div>
+      </div>
+    </div>
+    <div style="padding: 0 28px;">
+      <div class="section" style="margin-bottom:16px;">
+        <div class="section-header"><h3>請求一覧</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>案件</th><th>顧客</th><th>金額（税込）</th><th>ステータス</th><th>発行日</th><th>支払期限</th><th>PDF</th><th></th></tr></thead>
+            <tbody id="invoices-table-body"><tr><td colspan="7" class="loading">読み込み中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><h3>経費一覧</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>日付</th><th>カテゴリ</th><th>内容</th><th>案件</th><th>金額</th><th></th></tr></thead>
+            <tbody id="expenses-table-body"><tr><td colspan="6" class="loading">読み込み中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ========== モーダル：顧客 ========== -->
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-client-title">顧客を追加</h3>
+      <button class="modal-close" onclick="closeModal('modal-client')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="client-id">
+      <div class="form-group"><label>顧客名 *</label><input type="text" id="client-name" placeholder="例：株式会社サンプル"></div>
+      <div class="form-row">
+        <div class="form-group"><label>メール</label><input type="email" id="client-email" placeholder="email@example.com"></div>
+        <div class="form-group"><label>電話</label><input type="tel" id="client-phone" placeholder="03-0000-0000"></div>
+      </div>
+      <div class="form-group"><label>住所</label><input type="text" id="client-address"></div>
+      <div class="form-group"><label>備考</label><textarea id="client-notes"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-client')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveClient()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== モーダル：案件 ========== -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-project-title">案件を追加</h3>
+      <button class="modal-close" onclick="closeModal('modal-project')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="project-id">
+      <div class="form-group"><label>案件名 *</label><input type="text" id="project-title" placeholder="例：ウェブサイトリニューアル"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>顧客名</label>
+          <input type="text" id="project-client-name" list="client-datalist"
+                 autocomplete="off" placeholder="例：山田商店（フリー入力）">
+          <datalist id="client-datalist"></datalist>
+          <label class="save-client-label">
+            <input type="checkbox" id="project-save-client">
+            この顧客名を保存する
+          </label>
+        </div>
+        <div class="form-group">
+          <label>ステータス</label>
+          <select id="project-status">
+            <option value="pending">未着手</option>
+            <option value="active">進行中</option>
+            <option value="completed">完了</option>
+            <option value="cancelled">キャンセル</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>開始日</label><input type="date" id="project-start"></div>
+        <div class="form-group"><label>終了日</label><input type="date" id="project-end"></div>
+      </div>
+      <div class="form-group"><label>予算（円）</label><input type="number" id="project-budget" placeholder="0"></div>
+      <div class="form-group"><label>詳細</label><textarea id="project-description"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-project')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveProject()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== モーダル：請求 ========== -->
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-invoice-title">請求を追加</h3>
+      <button class="modal-close" onclick="closeModal('modal-invoice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="invoice-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>顧客</label>
+          <select id="invoice-client" onchange="filterInvoiceProjects()"></select>
+        </div>
+        <div class="form-group">
+          <label>案件</label>
+          <select id="invoice-project"><option value="">— 選択 —</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>金額（税抜）*</label><input type="number" id="invoice-amount" placeholder="0"></div>
+        <div class="form-group">
+          <label>ステータス</label>
+          <select id="invoice-status">
+            <option value="draft">下書き</option>
+            <option value="sent">送付済</option>
+            <option value="paid">入金済</option>
+            <option value="overdue">期限超過</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>発行日</label><input type="date" id="invoice-issue-date"></div>
+        <div class="form-group"><label>支払期限</label><input type="date" id="invoice-due-date"></div>
+      </div>
+      <div class="form-group"><label>備考</label><textarea id="invoice-notes"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-invoice')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== モーダル：経費 ========== -->
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-expense-title">経費を追加</h3>
+      <button class="modal-close" onclick="closeModal('modal-expense')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="expense-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>カテゴリ</label>
+          <select id="expense-category">
+            <option value="交通費">交通費</option>
+            <option value="通信費">通信費</option>
+            <option value="ソフトウェア">ソフトウェア</option>
+            <option value="外注費">外注費</option>
+            <option value="接待交際費">接待交際費</option>
+            <option value="消耗品費">消耗品費</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>案件（任意）</label>
+          <select id="expense-project"><option value="">— 選択 —</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>内容 *</label><input type="text" id="expense-description" placeholder="例：サーバー費用"></div>
+      <div class="form-row">
+        <div class="form-group"><label>金額（円）*</label><input type="number" id="expense-amount" placeholder="0"></div>
+        <div class="form-group"><label>日付</label><input type="date" id="expense-date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-expense')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveExpense()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== モーダル：見積もり ========== -->
+<div class="modal-overlay" id="modal-quote">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-quote-title">見積もりを追加</h3>
+      <button class="modal-close" onclick="closeModal('modal-quote')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="quote-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>顧客</label>
+          <select id="quote-client" onchange="filterQuoteProjects()"></select>
+        </div>
+        <div class="form-group">
+          <label>案件</label>
+          <select id="quote-project"><option value="">— 選択 —</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>金額（税抜）*</label><input type="number" id="quote-amount" placeholder="0"></div>
+        <div class="form-group">
+          <label>ステータス</label>
+          <select id="quote-status">
+            <option value="draft">下書き</option>
+            <option value="sent">送付済</option>
+            <option value="accepted">承認済</option>
+            <option value="rejected">却下</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>発行日</label><input type="date" id="quote-issue-date"></div>
+        <div class="form-group"><label>有効期限</label><input type="date" id="quote-valid-until"></div>
+      </div>
+      <div class="form-group"><label>備考</label><textarea id="quote-notes"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-quote')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveQuote()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

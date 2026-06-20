@@ -1,0 +1,22 @@
+# 依存パッケージ
+node_modules/
+
+# 環境変数（絶対にcommitしないこと）
+.env
+.env.local
+.env.production
+
+# Google OAuthトークン（絶対にcommitしないこと）
+.google-token.json
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# ログ
+*.log
+npm-debug.log*
+
+# エディタ設定
+.vscode/
+.idea/

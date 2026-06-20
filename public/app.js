@@ -591,7 +591,7 @@ function renderInvoicesQuotesTable() {
     const actions = isInvoice
       ? `<button class="btn btn-ghost btn-sm" onclick="openInvoiceModal('${row.id}')">編集</button>
          <button class="btn btn-danger btn-sm" onclick="deleteInvoice('${row.id}')">削除</button>`
-      : `${row.status !== 'accepted' ? `<button class="btn btn-ghost btn-sm" onclick="convertQuote('${row.id}')">請求書化</button>` : ''}
+      : `<button class="btn btn-ghost btn-sm" onclick="formalizeQuote('${row.id}')">見積書化</button>
          <button class="btn btn-ghost btn-sm" onclick="openQuoteModal('${row.id}')">編集</button>
          <button class="btn btn-danger btn-sm" onclick="deleteQuote('${row.id}')">削除</button>`;
 
@@ -1082,6 +1082,25 @@ async function deleteQuote(id) {
   await apiFetch(`/api/quotes/${id}`, 'DELETE');
   toast('削除しました');
   loadFinance();
+}
+
+// 見積書化 — 見積をPDFとして出力。将来 Freee 見積書と連携予定
+async function formalizeQuote(id) {
+  // ── TODO: Freee 会計 見積書 連携（将来実装）──────────────────────
+  // Freee の見積書ページへ直接遷移する場合:
+  //   const quote = _quotes.find(q => q.id === id);
+  //   const freeeQuoteId = quote?.freee_quote_id;  // Supabase に freee_quote_id カラム追加後に使用
+  //   if (freeeQuoteId) {
+  //     window.open(`https://secure.freee.co.jp/quotations/${freeeQuoteId}`, '_blank');
+  //     return;
+  //   }
+  // Freee API で見積書を作成して返ってきた URL に遷移:
+  //   const res = await apiFetch(`/api/quotes/${id}/freee-sync`, 'POST');
+  //   if (res.freee_url) { window.open(res.freee_url, '_blank'); return; }
+  // ─────────────────────────────────────────────────────────────────
+
+  // 現在は PDF ダウンロードにフォールバック
+  await downloadQuotePdf(id);
 }
 
 async function convertQuote(id) {

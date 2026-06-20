@@ -401,10 +401,17 @@ function getGoogleOAuth2Client() {
     process.env.GOOGLE_CLIENT_SECRET,
     `${APP_URL}/auth/google/callback`   // ← APP_URL 環境変数で切り替え
   );
-  if (fs.existsSync(TOKEN_PATH)) {
+  // 環境変数優先、なければファイルから読む
+  if (process.env.GOOGLE_TOKEN) {
+    client.setCredentials(JSON.parse(process.env.GOOGLE_TOKEN));
+  } else if (fs.existsSync(TOKEN_PATH)) {
     client.setCredentials(JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8')));
   }
   return client;
+}
+
+function hasGoogleToken() {
+  return !!(process.env.GOOGLE_TOKEN || fs.existsSync(TOKEN_PATH));
 }
 
 // Google 認証ページ
@@ -446,7 +453,15 @@ app.get('/auth/google/callback', async (req, res) => {
     const { tokens } = await auth.getToken(code);
     auth.setCredentials(tokens);
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
-    res.send('<html><body><h2 style="font-family:sans-serif">Google カレンダー認証完了</h2><p>このタブを閉じてアプリをリロードしてください。</p></body></html>');
+    const tokenJson = JSON.stringify(tokens);
+    console.log('[Google Auth] GOOGLE_TOKEN =', tokenJson);
+    res.send(`<html><body style="font-family:sans-serif;padding:2rem">
+      <h2>Google カレンダー認証完了</h2>
+      <p>このタブを閉じてアプリをリロードしてください。</p>
+      <hr>
+      <p><strong>Renderで永続化する場合：</strong>以下をコピーして Render の環境変数 <code>GOOGLE_TOKEN</code> に貼り付けてください。</p>
+      <textarea rows="4" style="width:100%;font-size:12px">${tokenJson}</textarea>
+    </body></html>`);
   } catch (e) {
     console.error(e);
     res.status(500).send('認証エラーが発生しました');
@@ -458,7 +473,7 @@ app.get('/api/external/calendar/events', async (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID) {
     return res.json({ data: [], configured: false });
   }
-  if (!fs.existsSync(TOKEN_PATH)) {
+  if (!hasGoogleToken()) {
     return res.json({ data: [], configured: false, auth_url: '/auth/google' });
   }
   try {
@@ -478,6 +493,7 @@ app.get('/api/external/calendar/events', async (req, res) => {
   } catch (err) {
     if (err.code === 401) {
       if (fs.existsSync(TOKEN_PATH)) fs.unlinkSync(TOKEN_PATH);
+      // GOOGLE_TOKENは環境変数なので削除不可（再認証してRenderで更新してください）
       return res.json({ data: [], configured: false, auth_url: '/auth/google' });
     }
     console.error(err);
@@ -628,8 +644,8 @@ app.post('/api/news/save', express.json(), (req, res) => {
 app.get('/api/external/status', (req, res) => {
   res.json({
     notion:               !!(process.env.NOTION_TOKEN && process.env.NOTION_TASKS_DB_ID),
-    google_calendar:      !!(process.env.GOOGLE_CLIENT_ID && fs.existsSync(TOKEN_PATH)),
-    google_auth_required: !!(process.env.GOOGLE_CLIENT_ID && !fs.existsSync(TOKEN_PATH)),
+    google_calendar:      !!(process.env.GOOGLE_CLIENT_ID && hasGoogleToken()),
+    google_auth_required: !!(process.env.GOOGLE_CLIENT_ID && !hasGoogleToken()),
     freee:                !!(process.env.FREEE_CLIENT_ID),
   });
 });

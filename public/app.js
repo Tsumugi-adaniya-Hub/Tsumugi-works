@@ -5,7 +5,7 @@
 const API = '';  // same-origin
 
 // ── キャッシュ ──
-let _clients = [];
+let _clients  = [];
 let _projects = [];
 let _invoices = [];
 let _expenses = [];
@@ -40,31 +40,18 @@ async function loadDashboard() {
   const d = document.getElementById('dashboard-date');
   d.textContent = new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
 
-  const [notionRes, projects, dash] = await Promise.all([
-    fetchJSON('/api/external/notion/projects').catch(() => ({ configured: false, data: [] })),
+  const [projects, dash] = await Promise.all([
     fetchJSON('/api/projects'),
     fetchJSON('/api/dashboard'),
   ]);
 
-  let total = 0, pending = 0, active = 0, completed = 0;
-  let displayProjects = [];
-  let usingNotion = false;
+  const ACTIVE_PROGRESSES = ['受注確定','契約締結','フェーズ１（LP制作）','フェース２（事務代行）','フェーズ3（業務効率化）'];
+  const PENDING_PROGRESSES = ['相談のみ','見積もり作成中','見積もり済み'];
 
-  if (notionRes.configured && notionRes.data?.length) {
-    _notionProjects = notionRes.data;
-    usingNotion = true;
-    total     = _notionProjects.length;
-    pending   = _notionProjects.filter(p => ['相談のみ','見積もり作成中','見積もり済み'].includes(p.progress)).length;
-    active    = _notionProjects.filter(p => ['受注確定','契約締結','フェーズ１（LP制作）','フェース２（事務代行）','フェーズ3（業務効率化）'].includes(p.progress)).length;
-    completed = _notionProjects.filter(p => p.progress === '納品完了').length;
-    displayProjects = _notionProjects.slice(0, 5);
-  } else {
-    total     = projects.length;
-    pending   = projects.filter(p => p.status === 'pending').length;
-    active    = projects.filter(p => p.status === 'active').length;
-    completed = projects.filter(p => p.status === 'completed').length;
-    displayProjects = projects.slice(0, 5);
-  }
+  const total     = projects.length;
+  const pending   = projects.filter(p => PENDING_PROGRESSES.includes(p.progress)).length;
+  const active    = projects.filter(p => ACTIVE_PROGRESSES.includes(p.progress)).length;
+  const completed = projects.filter(p => p.progress === '納品完了').length;
 
   setText('dc-total',     total);
   setText('dc-pending',   pending);
@@ -74,37 +61,28 @@ async function loadDashboard() {
   setText('dc-profit', '¥' + fmt(dash.profit ?? 0));
 
   const tbody = document.getElementById('dash-projects-body');
-  if (!displayProjects.length) {
+  const recent = projects.slice(0, 5);
+  if (!recent.length) {
     tbody.innerHTML = '<tr><td colspan="4" class="empty">案件がまだありません</td></tr>';
-  } else if (usingNotion) {
-    tbody.innerHTML = displayProjects.map(p => {
-      const cls = NOTION_PROGRESS_CLASS[p.progress] ?? 'badge-pending';
-      return `<tr>
-        <td>${esc(p.project_name || '—')}</td>
-        <td>${esc(p.title)}</td>
-        <td><span class="badge ${cls}">${esc(p.progress || '—')}</span></td>
-        <td>${p.inquiry_date ? fmtDate(p.inquiry_date) : '—'}</td>
-      </tr>`;
-    }).join('');
   } else {
-    tbody.innerHTML = displayProjects.map(p => `
-      <tr>
+    tbody.innerHTML = recent.map(p => {
+      const cls = progressBadgeClass(p.progress);
+      return `<tr>
         <td>${esc(p.title)}</td>
         <td>${esc(p.clients?.name ?? '—')}</td>
-        <td>${statusBadge(p.status, 'project')}</td>
+        <td><span class="badge ${cls}">${esc(p.progress || '—')}</span></td>
         <td>${p.start_date ? fmtDate(p.start_date) : '—'}</td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
   }
 
   loadExternalStatus();
   loadCalendarEvents();
-  loadNotionTasks();
   loadNewsPanel();
 }
 
 // ============================================================
-// 外部サービス集約（Google Calendar / Notion）
+// 外部サービス集約（Google Calendar）
 // ============================================================
 
 async function loadExternalStatus() {
@@ -112,11 +90,8 @@ async function loadExternalStatus() {
   const banner = document.getElementById('ext-setup-banner');
   const items  = document.getElementById('ext-setup-items');
   const msgs = [];
-  if (!status.notion) {
-    msgs.push('Notion 未接続 — <a href="/settings-guide.html" target="_blank" style="color:var(--accent)">設定方法を見る</a>（NOTION_TOKEN・NOTION_TASKS_DB_ID を .env に追加）');
-  }
   if (!status.google_calendar && !status.google_auth_required) {
-    msgs.push('Googleカレンダー 未接続 — <a href="/settings-guide.html" target="_blank" style="color:var(--accent)">設定方法を見る</a>（GOOGLE_CLIENT_ID を .env に追加）');
+    msgs.push('Googleカレンダー 未接続 — GOOGLE_CLIENT_ID を .env に追加してください');
   }
   if (status.google_auth_required) {
     msgs.push('Googleカレンダー 認証が必要です — <a href="/auth/google" target="_blank" style="color:var(--accent)">ここをクリックして認証</a>');
@@ -163,48 +138,6 @@ async function loadCalendarEvents() {
   }).join('');
 }
 
-async function loadNotionTasks() {
-  const el = document.getElementById('notion-tasks-list');
-  el.innerHTML = '<div style="padding:8px 20px;font-size:13px;color:var(--text-muted)">読み込み中...</div>';
-  const res = await fetchJSON('/api/external/notion/tasks').catch(() => ({ data: [], configured: false }));
-
-  if (!res.configured) {
-    el.innerHTML = `<div style="padding:10px 20px;font-size:13px;color:var(--text-muted)">
-      Notion未接続<br>
-      <span style="font-size:11px">.env に NOTION_TOKEN・NOTION_TASKS_DB_ID を設定してください</span>
-    </div>`;
-    return;
-  }
-  if (!res.data || res.data.length === 0) {
-    el.innerHTML = '<div style="padding:10px 20px;font-size:13px;color:var(--text-muted)">タスクがありません</div>';
-    return;
-  }
-
-  el.innerHTML = res.data.map(page => {
-    // Notion ページのタイトルプロパティを抽出（プロパティ名は「名前」か「Name」が一般的）
-    const props = page.properties || {};
-    const titleProp = props['名前'] || props['Name'] || props['title'] || Object.values(props).find(p => p.type === 'title');
-    const title = titleProp?.title?.[0]?.plain_text || '（タイトルなし）';
-
-    // チェックボックス（Done / 完了 など）
-    const doneProp = props['Done'] || props['完了'] || props['チェック'];
-    const done = doneProp?.checkbox === true;
-
-    // 期日
-    const dateProp = props['期日'] || props['Due'] || props['日付'];
-    const dueDate = dateProp?.date?.start
-      ? new Date(dateProp.date.start).toLocaleDateString('ja-JP', { month:'numeric', day:'numeric' })
-      : '';
-
-    return `<div style="padding:8px 20px; border-bottom:1px solid var(--border); font-size:13px; display:flex; align-items:flex-start; gap:8px; ${done ? 'opacity:0.45;' : ''}">
-      <span style="margin-top:2px">${done ? '☑' : '☐'}</span>
-      <div style="flex:1; min-width:0;">
-        <div style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${esc(title)}</div>
-        ${dueDate ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${dueDate}</div>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
 
 // ============================================================
 // 顧客
@@ -298,135 +231,87 @@ async function deleteClient(id) {
 }
 
 // ============================================================
-// 受注管理（Notion 優先・Supabase フォールバック）
+// 受注管理（Supabase完結）
 // ============================================================
-let _notionProjects = [];
 
-// 進行度 → ステータスバッジ色クラスのマッピング
-const NOTION_PROGRESS_CLASS = {
-  '相談のみ':              'badge-pending',
-  '見積もり作成中':        'badge-pending',
-  '見積もり済み':          'badge-pending',
-  '受注確定':              'badge-active',
-  '契約締結':              'badge-active',
-  'フェーズ１（LP制作）':  'badge-active',
-  'フェース２（事務代行）':'badge-active',
-  'フェーズ3（業務効率化）':'badge-active',
-  '納品完了':              'badge-completed',
-};
+// 進行度 → バッジ色クラス
+function progressBadgeClass(progress) {
+  const ACTIVE = ['受注確定','契約締結','フェーズ１（LP制作）','フェース２（事務代行）','フェーズ3（業務効率化）'];
+  const PENDING = ['相談のみ','見積もり作成中','見積もり済み'];
+  if (ACTIVE.includes(progress))   return 'badge-active';
+  if (PENDING.includes(progress))  return 'badge-pending';
+  if (progress === '納品完了')      return 'badge-completed';
+  return 'badge-pending';
+}
 
 async function loadProjects() {
-  const [notionRes, projects, clients, invoices, quotes] = await Promise.all([
-    fetchJSON('/api/external/notion/projects').catch(() => ({ configured: false, data: [] })),
+  const [projects, clients, invoices, quotes] = await Promise.all([
     fetchJSON('/api/projects'),
     fetchJSON('/api/clients'),
     fetchJSON('/api/invoices'),
     fetchJSON('/api/quotes'),
   ]);
-
-  _projects  = projects;
-  _clients   = clients;
-  _invoices  = invoices;
-  _quotes    = quotes;
-
-  if (notionRes.configured && notionRes.data?.length) {
-    _notionProjects = notionRes.data;
-    document.getElementById('notion-projects-banner').style.display = 'block';
-  } else {
-    _notionProjects = [];
-    document.getElementById('notion-projects-banner').style.display = 'none';
-  }
-
+  _projects = projects;
+  _clients  = clients;
+  _invoices = invoices;
+  _quotes   = quotes;
   updateProjectStats();
   renderUnifiedProjectsTable();
 }
 
-function updateProjectStats() {
-  if (_notionProjects.length) {
-    const total     = _notionProjects.length;
-    const active    = _notionProjects.filter(p => ['受注確定','契約締結','フェーズ１（LP制作）','フェース２（事務代行）','フェーズ3（業務効率化）'].includes(p.progress)).length;
-    const pending   = _notionProjects.filter(p => ['相談のみ','見積もり作成中','見積もり済み'].includes(p.progress)).length;
-    const completed = _notionProjects.filter(p => p.progress === '納品完了').length;
-    setText('pj-total',     total);
-    setText('pj-active',    active);
-    setText('pj-pending',   pending);
-    setText('pj-completed', completed);
-  } else {
-    const byStatus = s => _projects.filter(p => p.status === s).length;
-    setText('pj-total',     _projects.length);
-    setText('pj-active',    byStatus('active'));
-    setText('pj-pending',   byStatus('pending'));
-    setText('pj-completed', byStatus('completed'));
-  }
-}
+// 進行度 → ステータス分類
+const PROGRESS_CATEGORY = {
+  ACTIVE:   ['受注確定','契約締結','フェーズ１（LP制作）','フェース２（事務代行）','フェーズ3（業務効率化）'],
+  PENDING:  ['相談のみ','見積もり作成中','見積もり済み'],
+  COMPLETED:['納品完了'],
+};
 
-// ── Notion 進行度・入金状況をインラインで更新 ──
-async function updateNotionProjectField(pageId, field, value) {
-  const body = {};
-  body[field] = value;
-  const res = await apiFetch(`/api/external/notion/projects/${pageId}`, 'PATCH', body);
-  if (res.error) { toast(res.error, true); return; }
-  const p = _notionProjects.find(p => p.id === pageId);
-  if (p) p[field] = value;
-  toast('更新しました');
-}
-
-// ── Supabase 案件ステータスをインラインで更新 ──
-async function updateSupabaseProjectStatus(id, status) {
-  const res = await apiFetch(`/api/projects/${id}`, 'PUT', { status });
-  if (res.error) { toast(res.error, true); loadProjects(); return; }
-  const p = _projects.find(p => p.id === id);
-  if (p) p.status = status;
-  updateProjectStats();
-  toast('ステータスを更新しました');
-}
-
-// ── 統合受注一覧テーブル ──
-const NOTION_PROGRESS_OPTIONS = [
+const PROGRESS_OPTIONS = [
   '相談のみ','見積もり作成中','見積もり済み',
   '受注確定','契約締結',
   'フェーズ１（LP制作）','フェース２（事務代行）','フェーズ3（業務効率化）',
   '納品完了',
 ];
-const NOTION_PAYMENT_OPTIONS = ['未入金','請求書送付済','入金済'];
+const PAYMENT_OPTIONS = ['未入金','請求書送付済','入金済'];
 
-// Notion進行度 → Supabaseステータス相当（フィルター用）
-const NOTION_TO_SUPABASE_STATUS = {
-  '相談のみ': 'pending', '見積もり作成中': 'pending', '見積もり済み': 'pending',
-  '受注確定': 'active', '契約締結': 'active',
-  'フェーズ１（LP制作）': 'active', 'フェース２（事務代行）': 'active', 'フェーズ3（業務効率化）': 'active',
-  '納品完了': 'completed',
-};
+function updateProjectStats() {
+  const total     = _projects.length;
+  const active    = _projects.filter(p => PROGRESS_CATEGORY.ACTIVE.includes(p.progress)).length;
+  const pending   = _projects.filter(p => PROGRESS_CATEGORY.PENDING.includes(p.progress)).length;
+  const completed = _projects.filter(p => PROGRESS_CATEGORY.COMPLETED.includes(p.progress)).length;
+  setText('pj-total',     total);
+  setText('pj-active',    active);
+  setText('pj-pending',   pending);
+  setText('pj-completed', completed);
+}
 
+// 案件フィールドをインライン更新（PATCH）
+async function updateProjectField(id, field, value) {
+  const body = {};
+  body[field] = value;
+  const res = await apiFetch(`/api/projects/${id}`, 'PATCH', body);
+  if (res.error) { toast(res.error, true); return; }
+  const p = _projects.find(p => p.id === id);
+  if (p) p[field] = value;
+  updateProjectStats();
+  toast('更新しました');
+}
+
+// ── 受注一覧テーブル ──
 function renderUnifiedProjectsTable() {
   const tbody  = document.getElementById('projects-unified-body');
   const filter = document.getElementById('project-status-filter')?.value ?? '';
 
-  // Notion行 + Supabase行（Notionに存在しない案件のみ）を統合
-  let rows = [];
-  if (_notionProjects.length) {
-    rows = _notionProjects.map(p => ({ ...p, _source: 'notion' }));
-    // Supabase案件でNotionと重複しないものを追加
-    const notionNames = new Set([
-      ..._notionProjects.map(p => p.project_name).filter(Boolean),
-      ..._notionProjects.map(p => p.title).filter(Boolean),
-    ]);
-    _projects.forEach(p => {
-      if (!notionNames.has(p.title) && !notionNames.has(p.clients?.name)) {
-        rows.push({ ...p, _source: 'supabase' });
-      }
-    });
-  } else {
-    rows = _projects.map(p => ({ ...p, _source: 'supabase' }));
-  }
+  let rows = [..._projects];
 
   // フィルター
   if (filter) {
     rows = rows.filter(row => {
-      if (row._source === 'notion') {
-        return NOTION_TO_SUPABASE_STATUS[row.progress] === filter;
-      }
-      return row.status === filter;
+      if (filter === 'active')    return PROGRESS_CATEGORY.ACTIVE.includes(row.progress);
+      if (filter === 'pending')   return PROGRESS_CATEGORY.PENDING.includes(row.progress);
+      if (filter === 'completed') return PROGRESS_CATEGORY.COMPLETED.includes(row.progress);
+      if (filter === 'cancelled') return row.status === 'cancelled';
+      return true;
     });
   }
 
@@ -436,71 +321,41 @@ function renderUnifiedProjectsTable() {
   }
 
   tbody.innerHTML = rows.map(row => {
-    const isNotion = row._source === 'notion';
-
-    // 案件名・顧客名
-    const projectName = isNotion ? (row.project_name || '（案件名なし）') : (row.title || '—');
-    const clientName  = isNotion ? row.title : (row.clients?.name ?? '—');
-
-    // 顧客名リンク（連絡先ポップアップ）
+    // 顧客名
+    const clientName = row.clients?.name ?? '—';
     let clientCell = esc(clientName);
-    const matchClient = isNotion
-      ? _clients.find(c => c.name === clientName)
-      : (row.client_id ? _clients.find(c => c.id === row.client_id) : null);
-    if (matchClient) {
-      clientCell = `<a href="#" onclick="showClientCard('${matchClient.id}');return false;" style="color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent);">${esc(clientName)}</a>`;
+    if (row.client_id) {
+      const c = _clients.find(c => c.id === row.client_id);
+      if (c) clientCell = `<a href="#" onclick="showClientCard('${c.id}');return false;" style="color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent);">${esc(clientName)}</a>`;
     }
 
     // 問い合わせ日
-    const inquiryDate = isNotion
-      ? (row.inquiry_date   ? fmtDate(row.inquiry_date)  : '—')
-      : (row.start_date     ? fmtDate(row.start_date)    : '—');
+    const inquiryDate = row.start_date ? fmtDate(row.start_date) : '—';
 
     // 進行度プルダウン
-    let progressCell;
-    if (isNotion) {
-      progressCell = `<select class="inline-status-select" style="max-width:150px;" onchange="updateNotionProjectField('${row.id}','progress',this.value)">
-        ${NOTION_PROGRESS_OPTIONS.map(v => `<option value="${v}"${row.progress === v ? ' selected' : ''}>${v}</option>`).join('')}
-      </select>`;
-    } else {
-      progressCell = `<select class="inline-status-select" onchange="updateSupabaseProjectStatus('${row.id}',this.value)">
-        <option value="pending"${row.status === 'pending' ? ' selected' : ''}>未着手</option>
-        <option value="active"${row.status === 'active' ? ' selected' : ''}>進行中</option>
-        <option value="completed"${row.status === 'completed' ? ' selected' : ''}>完了</option>
-        <option value="cancelled"${row.status === 'cancelled' ? ' selected' : ''}>キャンセル</option>
-      </select>`;
-    }
+    const progressCell = `<select class="inline-status-select" style="max-width:150px;" onchange="updateProjectField('${row.id}','progress',this.value)">
+      ${PROGRESS_OPTIONS.map(v => `<option value="${v}"${row.progress === v ? ' selected' : ''}>${v}</option>`).join('')}
+    </select>`;
 
-    // 入金状況
-    let paymentCell;
-    if (isNotion) {
-      paymentCell = `<select class="inline-status-select" onchange="updateNotionProjectField('${row.id}','payment',this.value)">
-        ${NOTION_PAYMENT_OPTIONS.map(v => `<option value="${v}"${row.payment === v ? ' selected' : ''}>${v}</option>`).join('')}
-      </select>`;
-    } else {
-      const relInv = _invoices.find(i => i.project_id === row.id || i.project_name === row.title);
-      const invStatus = relInv ? (STATUS_LABELS.invoice[relInv.status] ?? relInv.status) : '—';
-      paymentCell = `<span style="font-size:12px;">${esc(invStatus)}</span>`;
-    }
+    // 入金状況プルダウン
+    const paymentCell = `<select class="inline-status-select" onchange="updateProjectField('${row.id}','payment_status',this.value)">
+      ${PAYMENT_OPTIONS.map(v => `<option value="${v}"${row.payment_status === v ? ' selected' : ''}>${v}</option>`).join('')}
+    </select>`;
 
-    // 金額（紐づく invoice > quote > budget の優先順）
-    const keyName = isNotion ? row.project_name : row.title;
-    const relInv  = _invoices.find(i => (isNotion ? false : i.project_id === row.id) || i.project_name === keyName);
-    const relQuote = _quotes.find(q => (isNotion ? false : q.project_id === row.id) || q.project_name === keyName);
+    // 金額（請求書 > 見積書 > budget の優先順）
+    const relInv   = _invoices.find(i => i.project_id === row.id || i.project_name === row.title);
+    const relQuote = _quotes.find(q => q.project_id === row.id || q.project_name === row.title);
     let amount = '—';
-    if (relInv)   amount = '¥' + fmt(Math.round(Number(relInv.amount)   * (1 + Number(relInv.tax_rate)   / 100)));
-    else if (relQuote) amount = '¥' + fmt(Math.round(Number(relQuote.amount) * (1 + Number(relQuote.tax_rate) / 100)));
-    else if (!isNotion && row.budget) amount = '¥' + fmt(row.budget);
+    if (relInv)        amount = '¥' + fmt(Math.round(Number(relInv.amount)    * (1 + Number(relInv.tax_rate)    / 100)));
+    else if (relQuote) amount = '¥' + fmt(Math.round(Number(relQuote.amount)  * (1 + Number(relQuote.tax_rate)  / 100)));
+    else if (row.budget) amount = '¥' + fmt(row.budget);
 
     // 納品予定日
-    const deliveryDate = isNotion
-      ? (row.delivery_date ? fmtDate(row.delivery_date) : '—')
-      : (row.end_date      ? fmtDate(row.end_date)      : '—');
+    const deliveryDate = row.end_date ? fmtDate(row.end_date) : '—';
 
     // 発行種別プルダウン
     const existingType = relInv ? 'invoice' : (relQuote ? 'quote' : '');
-    const rowId = isNotion ? row.id : row.id;
-    const docTypeSelect = `<select class="inline-status-select" id="doc-type-${rowId}">
+    const docTypeSelect = `<select class="inline-status-select" id="doc-type-${row.id}">
       <option value="">— 選択 —</option>
       <option value="invoice"${existingType === 'invoice' ? ' selected' : ''}>請求</option>
       <option value="quote"${existingType === 'quote'   ? ' selected' : ''}>見積</option>
@@ -508,19 +363,11 @@ function renderUnifiedProjectsTable() {
 
     // 出力（PDF）
     let pdfBtn = '<span style="color:var(--text-muted);font-size:12px;">—</span>';
-    if (relInv)   pdfBtn = `<button class="btn btn-ghost btn-sm" onclick="downloadInvoicePdf('${relInv.id}')">PDF</button>`;
+    if (relInv)        pdfBtn = `<button class="btn btn-ghost btn-sm" onclick="downloadInvoicePdf('${relInv.id}')">PDF</button>`;
     else if (relQuote) pdfBtn = `<button class="btn btn-ghost btn-sm" onclick="downloadQuotePdf('${relQuote.id}')">PDF</button>`;
 
-    // 編集・削除
-    const editBtn = isNotion
-      ? `<button class="btn btn-ghost btn-sm" onclick="openProjectModal()">追加</button>`
-      : `<button class="btn btn-ghost btn-sm" onclick="openProjectModal('${row.id}')">編集</button>`;
-    const deleteBtn = isNotion
-      ? '<span></span>'
-      : `<button class="btn btn-danger btn-sm" onclick="deleteProject('${row.id}')">削除</button>`;
-
     return `<tr>
-      <td><strong>${esc(projectName)}</strong></td>
+      <td><strong>${esc(row.title || '—')}</strong></td>
       <td>${clientCell}</td>
       <td style="white-space:nowrap;">${inquiryDate}</td>
       <td>${progressCell}</td>
@@ -529,8 +376,8 @@ function renderUnifiedProjectsTable() {
       <td style="white-space:nowrap;">${deliveryDate}</td>
       <td>${docTypeSelect}</td>
       <td>${pdfBtn}</td>
-      <td>${editBtn}</td>
-      <td>${deleteBtn}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openProjectModal('${row.id}')">編集</button></td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteProject('${row.id}')">削除</button></td>
     </tr>`;
   }).join('');
 }
@@ -579,7 +426,7 @@ async function openProjectModal(id) {
   clearForm('modal-project', ['project-id','project-title','project-budget','project-inquiry-date','project-delivery-date','project-description']);
   document.getElementById('project-client-name').value = '';
   document.getElementById('project-save-client').checked = false;
-  document.getElementById('project-notion-progress').value = '相談のみ';
+  document.getElementById('project-progress').value = '相談のみ';
 
   // datalist に保存済み顧客名 + Supabase clients をセット
   const saved = await fetchJSON('/api/client-names').catch(() => []);
@@ -598,7 +445,7 @@ async function openProjectModal(id) {
     document.getElementById('project-title').value = p.title;
     const clientName = _clients.find(c => c.id === p.client_id)?.name ?? '';
     document.getElementById('project-client-name').value = clientName;
-    document.getElementById('project-notion-progress').value = p.notion_progress ?? '相談のみ';
+    document.getElementById('project-progress').value = p.progress ?? '相談のみ';
     document.getElementById('project-inquiry-date').value = p.start_date ?? today;
     document.getElementById('project-delivery-date').value = p.end_date ?? '';
     document.getElementById('project-budget').value = p.budget ?? '';
@@ -610,10 +457,10 @@ async function openProjectModal(id) {
 }
 
 async function saveProject() {
-  const id = document.getElementById('project-id').value;
+  const id              = document.getElementById('project-id').value;
   const clientNameInput = document.getElementById('project-client-name').value.trim();
   const saveClientFlag  = document.getElementById('project-save-client').checked;
-  const notionProgress  = document.getElementById('project-notion-progress').value;
+  const progress        = document.getElementById('project-progress').value;
 
   // 顧客名 → client_id を解決
   let clientId = null;
@@ -643,12 +490,13 @@ async function saveProject() {
 
   const body = {
     title,
-    client_id:   clientId,
-    status:      'pending',
-    start_date:  inquiryDate,
-    end_date:    deliveryDate,
-    budget:      Number(document.getElementById('project-budget').value) || 0,
-    description: document.getElementById('project-description').value.trim() || null,
+    client_id:      clientId,
+    progress:       progress || '相談のみ',
+    payment_status: '未入金',
+    start_date:     inquiryDate,
+    end_date:       deliveryDate,
+    budget:         Number(document.getElementById('project-budget').value) || 0,
+    description:    document.getElementById('project-description').value.trim() || null,
   };
   if (!body.title) return toast('案件名を入力してください');
 
@@ -656,20 +504,6 @@ async function saveProject() {
   const method = id ? 'PUT' : 'POST';
   const res = await apiFetch(url, method, body);
   if (res.error) return toast(res.error, true);
-
-  // 新規案件はNotionにも追加（Notion接続中の場合）
-  if (!id) {
-    const extStatus = await fetchJSON('/api/external/status').catch(() => ({}));
-    if (extStatus.notion) {
-      await apiFetch('/api/external/notion/projects', 'POST', {
-        client_name:   clientNameInput,
-        project_name:  title,
-        progress:      notionProgress || '相談のみ',
-        inquiry_date:  inquiryDate,
-        delivery_date: deliveryDate,
-      });
-    }
-  }
 
   closeModal('modal-project');
   toast(id ? '案件を更新しました' : '案件を追加しました');
@@ -687,22 +521,18 @@ async function deleteProject(id) {
 // 財務
 // ============================================================
 async function loadFinance() {
-  const [invoices, expenses, clients, projects, quotes, notionRes] = await Promise.all([
+  const [invoices, expenses, clients, projects, quotes] = await Promise.all([
     fetchJSON('/api/invoices'),
     fetchJSON('/api/expenses'),
     fetchJSON('/api/clients'),
     fetchJSON('/api/projects'),
     fetchJSON('/api/quotes'),
-    fetchJSON('/api/external/notion/projects').catch(() => ({ configured: false, data: [] })),
   ]);
-  _invoices  = invoices;
-  _expenses  = expenses;
-  _clients   = clients;
-  _projects  = projects;
-  _quotes    = quotes;
-  if (notionRes.configured && notionRes.data?.length) {
-    _notionProjects = notionRes.data;
-  }
+  _invoices = invoices;
+  _expenses = expenses;
+  _clients  = clients;
+  _projects = projects;
+  _quotes   = quotes;
   updateFinanceStats();
   renderExpensesTable();
 }
@@ -831,8 +661,7 @@ async function openInvoiceModal(id) {
   const saved = await fetchJSON('/api/client-names').catch(() => []);
   const clientNames = [...new Set([...saved, ..._clients.map(c => c.name)])].sort((a, b) => a.localeCompare(b, 'ja'));
   document.getElementById('invoice-client-datalist').innerHTML = clientNames.map(n => `<option value="${esc(n)}">`).join('');
-  const notionTitles = _notionProjects.map(p => p.project_name).filter(Boolean);
-  const projectTitles = [...new Set([..._projects.map(p => p.title), ...notionTitles])].sort((a, b) => a.localeCompare(b, 'ja'));
+  const projectTitles = [...new Set(_projects.map(p => p.title))].sort((a, b) => a.localeCompare(b, 'ja'));
   document.getElementById('invoice-project-datalist').innerHTML = projectTitles.map(t => `<option value="${esc(t)}">`).join('');
 
   const today = new Date().toISOString().split('T')[0];
@@ -1179,8 +1008,7 @@ async function openQuoteModal(id) {
   const saved = await fetchJSON('/api/client-names').catch(() => []);
   const clientNames = [...new Set([...saved, ..._clients.map(c => c.name)])].sort((a, b) => a.localeCompare(b, 'ja'));
   document.getElementById('quote-client-datalist').innerHTML = clientNames.map(n => `<option value="${esc(n)}">`).join('');
-  const notionTitlesQ = _notionProjects.map(p => p.project_name).filter(Boolean);
-  const projectTitlesQ = [...new Set([..._projects.map(p => p.title), ...notionTitlesQ])].sort((a, b) => a.localeCompare(b, 'ja'));
+  const projectTitlesQ = [...new Set(_projects.map(p => p.title))].sort((a, b) => a.localeCompare(b, 'ja'));
   document.getElementById('quote-project-datalist').innerHTML = projectTitlesQ.map(t => `<option value="${esc(t)}">`).join('');
 
   const today = new Date().toISOString().split('T')[0];

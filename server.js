@@ -154,21 +154,36 @@ app.get('/api/projects/:id', async (req, res) => {
 });
 
 app.post('/api/projects', async (req, res) => {
-  const { client_id, title, description, status, start_date, end_date, budget } = req.body;
+  const { client_id, title, description, status, progress, payment_status, start_date, end_date, budget } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: '案件名は必須です' });
   const { data, error } = await supabase
     .from('projects')
-    .insert({ client_id, title: title.trim(), description, status, start_date, end_date, budget })
+    .insert({ client_id, title: title.trim(), description, status: status || 'pending', progress: progress || '相談のみ', payment_status: payment_status || '未入金', start_date, end_date, budget })
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '案件の登録に失敗しました' }); }
   res.status(201).json(data);
 });
 
 app.put('/api/projects/:id', async (req, res) => {
-  const { client_id, title, description, status, start_date, end_date, budget } = req.body;
+  const { client_id, title, description, status, progress, payment_status, start_date, end_date, budget } = req.body;
   const { data, error } = await supabase
     .from('projects')
-    .update({ client_id, title, description, status, start_date, end_date, budget })
+    .update({ client_id, title, description, status, progress, payment_status, start_date, end_date, budget })
+    .eq('id', req.params.id)
+    .select().single();
+  if (error) { console.error(error); return res.status(400).json({ error: '案件の更新に失敗しました' }); }
+  res.json(data);
+});
+
+// 案件 部分更新（進行度・入金状況などインライン更新用）
+app.patch('/api/projects/:id', async (req, res) => {
+  const allowed = ['status', 'progress', 'payment_status', 'client_id', 'title', 'description', 'start_date', 'end_date', 'budget'];
+  const update = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });
+  if (!Object.keys(update).length) return res.status(400).json({ error: '更新対象がありません' });
+  const { data, error } = await supabase
+    .from('projects')
+    .update(update)
     .eq('id', req.params.id)
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '案件の更新に失敗しました' }); }
@@ -389,7 +404,7 @@ app.get('/api/quotes/:id/pdf', async (req, res) => {
 });
 
 // ============================================================
-// 外部サービス連携（Notion / Google Calendar）
+// 外部サービス連携（Google Calendar）
 // ============================================================
 
 // --- Google Calendar OAuth ---
@@ -494,76 +509,6 @@ app.get('/api/external/calendar/events', async (req, res) => {
   }
 });
 
-// Notion 案件管理DB 取得
-app.get('/api/external/notion/projects', async (req, res) => {
-  const token = process.env.NOTION_TOKEN;
-  const dbId  = process.env.NOTION_PROJECTS_DB_ID;
-  if (!token || !dbId) return res.json({ data: [], configured: false });
-
-  try {
-    const response = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
-      method: 'POST',
-      headers: {
-        'Authorization':  `Bearer ${token}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type':   'application/json',
-      },
-      body: JSON.stringify({
-        page_size: 50,
-        sorts: [{ property: '問い合わせ日', direction: 'descending' }],
-      }),
-    });
-    const json = await response.json();
-    if (json.object === 'error') throw new Error(json.message);
-
-    const data = (json.results || []).map(page => {
-      const p = page.properties || {};
-      return {
-        id:            page.id,
-        notion_url:    page.url,
-        title:         p['顧客名']?.title?.[0]?.plain_text    ?? '（名称なし）',
-        project_name:  p['案件名']?.rich_text?.[0]?.plain_text ?? '',
-        progress:      p['進行度']?.status?.name              ?? '',
-        payment:       p['入金状況']?.status?.name            ?? '',
-        inquiry_date:  p['問い合わせ日']?.date?.start         ?? null,
-        delivery_date: p['納品予定日']?.date?.start           ?? null,
-        last_edited:   page.last_edited_time,
-      };
-    });
-    res.json({ data, configured: true });
-  } catch (err) {
-    console.error(err);
-    res.json({ data: [], configured: true, error: 'Notionからの取得に失敗しました' });
-  }
-});
-
-// Notion タスク取得
-app.get('/api/external/notion/tasks', async (req, res) => {
-  const token = process.env.NOTION_TOKEN;
-  const dbId  = process.env.NOTION_TASKS_DB_ID;
-  if (!token || !dbId) return res.json({ data: [], configured: false });
-
-  try {
-    const response = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
-      method: 'POST',
-      headers: {
-        'Authorization':  `Bearer ${token}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type':   'application/json',
-      },
-      body: JSON.stringify({
-        page_size: 15,
-        sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
-      }),
-    });
-    const json = await response.json();
-    if (json.object === 'error') throw new Error(json.message);
-    res.json({ data: json.results || [], configured: true });
-  } catch (err) {
-    console.error(err);
-    res.json({ data: [], configured: true, error: 'Notionタスクの取得に失敗しました' });
-  }
-});
 
 // ============================================================
 // 顧客名マスタ（data/clients.json）
@@ -636,10 +581,8 @@ app.post('/api/news/save', express.json(), (req, res) => {
 // 設定状態チェック
 app.get('/api/external/status', (req, res) => {
   res.json({
-    notion:               !!(process.env.NOTION_TOKEN && process.env.NOTION_TASKS_DB_ID),
     google_calendar:      !!(process.env.GOOGLE_CLIENT_ID && hasGoogleToken()),
     google_auth_required: !!(process.env.GOOGLE_CLIENT_ID && !hasGoogleToken()),
-    freee:                !!(process.env.FREEE_CLIENT_ID),
   });
 });
 
@@ -789,74 +732,6 @@ app.delete('/api/documents/:id', async (req, res) => {
   res.status(204).end();
 });
 
-// ============================================================
-// Notion 案件 更新・追加
-// ============================================================
-
-// 進行度・入金状況をNotionページに書き戻す
-app.patch('/api/external/notion/projects/:pageId', async (req, res) => {
-  const token = process.env.NOTION_TOKEN;
-  if (!token) return res.status(400).json({ error: 'NOTION_TOKEN not set' });
-
-  const { progress, payment } = req.body;
-  const properties = {};
-  if (progress !== undefined) properties['進行度'] = { status: { name: progress } };
-  if (payment  !== undefined) properties['入金状況'] = { status: { name: payment } };
-  if (!Object.keys(properties).length) return res.status(400).json({ error: '更新対象がありません' });
-
-  try {
-    const r = await fetch(`https://api.notion.com/v1/pages/${req.params.pageId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization':  `Bearer ${token}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type':   'application/json',
-      },
-      body: JSON.stringify({ properties }),
-    });
-    const json = await r.json();
-    if (json.object === 'error') throw new Error(json.message);
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('[Notion PATCH]', err);
-    res.status(500).json({ error: 'Notionの更新に失敗しました' });
-  }
-});
-
-// Notionに新規案件ページを追加
-app.post('/api/external/notion/projects', async (req, res) => {
-  const token = process.env.NOTION_TOKEN;
-  const dbId  = process.env.NOTION_PROJECTS_DB_ID;
-  if (!token || !dbId) return res.status(400).json({ error: 'NOTION_TOKEN または NOTION_PROJECTS_DB_ID が未設定' });
-
-  const { client_name, project_name, progress, inquiry_date, delivery_date } = req.body;
-
-  const properties = {
-    '顧客名': { title: [{ text: { content: client_name || '' } }] },
-  };
-  if (project_name)   properties['案件名']     = { rich_text: [{ text: { content: project_name } }] };
-  if (progress)       properties['進行度']      = { status: { name: progress } };
-  if (inquiry_date)   properties['問い合わせ日'] = { date: { start: inquiry_date } };
-  if (delivery_date)  properties['納品予定日']   = { date: { start: delivery_date } };
-
-  try {
-    const r = await fetch('https://api.notion.com/v1/pages', {
-      method: 'POST',
-      headers: {
-        'Authorization':  `Bearer ${token}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type':   'application/json',
-      },
-      body: JSON.stringify({ parent: { database_id: dbId }, properties }),
-    });
-    const json = await r.json();
-    if (json.object === 'error') throw new Error(json.message);
-    res.status(201).json({ ok: true, id: json.id, url: json.url });
-  } catch (err) {
-    console.error('[Notion POST project]', err);
-    res.status(500).json({ error: 'Notionへの追加に失敗しました' });
-  }
-});
 
 app.listen(PORT, () => {
   console.log(`つむぎワークス 運営管理アプリ起動 → ${APP_URL}`);

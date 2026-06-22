@@ -56,21 +56,14 @@
             <div id="ext-setup-items" style="font-size:13px; color:var(--text-muted); line-height:1.8;"></div>
           </div>
 
-          <!-- 2カラム: カレンダー / Notionタスク -->
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+
+          <div style="margin-bottom:16px;">
             <div class="section" style="margin-bottom:0;">
               <div class="section-header">
                 <h3>今後の予定 <span style="font-size:11px; font-weight:400; color:var(--text-muted); margin-left:4px;">Googleカレンダー</span></h3>
                 <button class="btn btn-ghost btn-sm" onclick="loadCalendarEvents()">更新</button>
               </div>
               <div id="cal-events-list" style="padding:8px 20px; font-size:13px; color:var(--text-muted);">読み込み中...</div>
-            </div>
-            <div class="section" style="margin-bottom:0;">
-              <div class="section-header">
-                <h3>タスク <span style="font-size:11px; font-weight:400; color:var(--text-muted); margin-left:4px;">Notion</span></h3>
-                <button class="btn btn-ghost btn-sm" onclick="loadNotionTasks()">更新</button>
-              </div>
-              <div id="notion-tasks-list" style="padding:8px 20px; font-size:13px; color:var(--text-muted);">読み込み中...</div>
             </div>
           </div>
 
@@ -258,10 +251,7 @@
           </table>
         </div>
       </div>
-      <!-- Notionデータソースバナー -->
-      <div id="notion-projects-banner" style="display:none; margin-bottom:12px; padding:10px 16px; background:var(--accent-light); border-radius:8px; font-size:12px; color:var(--accent);">
-        <span>Notion 案件管理DB と連携中</span>
-      </div>
+
       <div class="section">
         <div class="section-header">
           <h3>受注一覧</h3>
@@ -364,15 +354,6 @@
             この顧客名を保存する
           </label>
         </div>
-        <div class="form-group">
-          <label>ステータス</label>
-          <select id="project-status">
-            <option value="pending">未着手</option>
-            <option value="active">進行中</option>
-            <option value="completed">完了</option>
-            <option value="cancelled">キャンセル</option>
-          </select>
-        </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>問い合わせ日</label><input type="date" id="project-inquiry-date"></div>
@@ -381,7 +362,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>進行度</label>
-          <select id="project-notion-progress">
+          <select id="project-progress">
             <option value="相談のみ">相談のみ</option>
             <option value="見積もり作成中">見積もり作成中</option>
             <option value="見積もり済み">見積もり済み</option>

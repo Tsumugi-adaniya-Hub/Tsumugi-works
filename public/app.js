@@ -375,19 +375,19 @@ function renderUnifiedProjectsTable() {
     const deliveryDate = row.end_date ? fmtDate(row.end_date) : '—';
 
     // 発行種別プルダウン（onchange でPDFボタン列を動的更新）
-    const existingType = relInv ? 'invoice' : (relQuote ? 'quote' : '');
+    const existingType = relInv ? 'invoice' : (relQuote ? 'quote' : 'invoice'); // デフォルト請求
     const rowId = row.id;
     const docTypeSelect = `<select class="inline-status-select" id="doc-type-${rowId}" onchange="refreshPdfCell('${rowId}')">
-      <option value="">— 選択 —</option>
       <option value="invoice"${existingType === 'invoice' ? ' selected' : ''}>請求</option>
       <option value="quote"${existingType === 'quote'   ? ' selected' : ''}>見積</option>
     </select>`;
 
-    // 出力（PDF）: 紐づく書類があればPDFボタン、なければ「発行」リンク
+    // 出力（PDF）: 紐づく書類があればPDFボタン、なければ「発行」ボタン（常に表示）
     let pdfCell = '';
-    if (relInv)        pdfCell = `<button class="btn btn-ghost btn-sm" onclick="downloadInvoicePdf('${relInv.id}')">PDF</button>`;
-    else if (relQuote) pdfCell = `<button class="btn btn-ghost btn-sm" onclick="downloadQuotePdf('${relQuote.id}')">PDF</button>`;
-    else               pdfCell = `<span id="pdf-cell-${rowId}" style="color:var(--text-muted);font-size:12px;">—</span>`;
+    if (relInv)                    pdfCell = `<button class="btn btn-ghost btn-sm" onclick="downloadInvoicePdf('${relInv.id}')">PDF</button>`;
+    else if (relQuote)             pdfCell = `<button class="btn btn-ghost btn-sm" onclick="downloadQuotePdf('${relQuote.id}')">PDF</button>`;
+    else if (existingType === 'invoice') pdfCell = `<button class="btn btn-ghost btn-sm" onclick="openInvoiceForProject('${rowId}')">発行</button>`;
+    else                           pdfCell = `<button class="btn btn-ghost btn-sm" onclick="openQuoteForProject('${rowId}')">発行</button>`;
 
     // 備考
     const notes = row.description ? esc(row.description).substring(0, 20) + (row.description.length > 20 ? '…' : '') : '—';

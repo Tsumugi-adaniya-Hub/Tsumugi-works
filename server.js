@@ -104,21 +104,28 @@ app.get('/api/clients/:id', async (req, res) => {
 });
 
 app.post('/api/clients', async (req, res) => {
-  const { name, email, phone, address, notes } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: '顧客名は必須です' });
+  const { name, last_name, first_name, last_name_kana, first_name_kana, company, email, phone, postal_code, address, notes } = req.body;
+  // name を姓名から構築、直接渡された name は後方互換として残す
+  const fullName = (last_name && first_name) ? `${last_name} ${first_name}` :
+                   last_name ? last_name :
+                   name?.trim();
+  if (!fullName) return res.status(400).json({ error: '姓は必須です' });
   const { data, error } = await supabase
     .from('clients')
-    .insert({ name: name.trim(), email, phone, address, notes })
+    .insert({ name: fullName, last_name, first_name, last_name_kana, first_name_kana, company, email, phone, postal_code, address, notes })
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '顧客の登録に失敗しました' }); }
   res.status(201).json(data);
 });
 
 app.put('/api/clients/:id', async (req, res) => {
-  const { name, email, phone, address, notes } = req.body;
+  const { name, last_name, first_name, last_name_kana, first_name_kana, company, email, phone, postal_code, address, notes } = req.body;
+  const fullName = (last_name && first_name) ? `${last_name} ${first_name}` :
+                   last_name ? last_name :
+                   name;
   const { data, error } = await supabase
     .from('clients')
-    .update({ name, email, phone, address, notes })
+    .update({ name: fullName, last_name, first_name, last_name_kana, first_name_kana, company, email, phone, postal_code, address, notes })
     .eq('id', req.params.id)
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '顧客の更新に失敗しました' }); }

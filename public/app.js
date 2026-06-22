@@ -187,17 +187,24 @@ function renderClientsTable() {
 }
 
 function openClientModal(id) {
-  clearForm('modal-client', ['client-id','client-name','client-email','client-phone','client-address','client-notes']);
+  const fields = ['client-id','client-last-name','client-first-name','client-last-name-kana','client-first-name-kana',
+                  'client-company','client-email','client-phone','client-postal-code','client-address','client-notes'];
+  clearForm('modal-client', fields);
   if (id) {
     const c = _clients.find(c => c.id === id);
     if (!c) return;
     document.getElementById('modal-client-title').textContent = '顧客を編集';
-    document.getElementById('client-id').value = c.id;
-    document.getElementById('client-name').value = c.name;
-    document.getElementById('client-email').value = c.email ?? '';
-    document.getElementById('client-phone').value = c.phone ?? '';
-    document.getElementById('client-address').value = c.address ?? '';
-    document.getElementById('client-notes').value = c.notes ?? '';
+    document.getElementById('client-id').value             = c.id;
+    document.getElementById('client-last-name').value      = c.last_name ?? '';
+    document.getElementById('client-first-name').value     = c.first_name ?? '';
+    document.getElementById('client-last-name-kana').value = c.last_name_kana ?? '';
+    document.getElementById('client-first-name-kana').value= c.first_name_kana ?? '';
+    document.getElementById('client-company').value        = c.company ?? '';
+    document.getElementById('client-email').value          = c.email ?? '';
+    document.getElementById('client-phone').value          = c.phone ?? '';
+    document.getElementById('client-postal-code').value    = c.postal_code ?? '';
+    document.getElementById('client-address').value        = c.address ?? '';
+    document.getElementById('client-notes').value          = c.notes ?? '';
   } else {
     document.getElementById('modal-client-title').textContent = '顧客を追加';
   }
@@ -206,14 +213,21 @@ function openClientModal(id) {
 
 async function saveClient() {
   const id = document.getElementById('client-id').value;
+  const lastName  = document.getElementById('client-last-name').value.trim();
+  const firstName = document.getElementById('client-first-name').value.trim();
+  if (!lastName) return toast('姓を入力してください');
   const body = {
-    name:    document.getElementById('client-name').value.trim(),
-    email:   document.getElementById('client-email').value.trim() || null,
-    phone:   document.getElementById('client-phone').value.trim() || null,
-    address: document.getElementById('client-address').value.trim() || null,
-    notes:   document.getElementById('client-notes').value.trim() || null,
+    last_name:       lastName,
+    first_name:      firstName || null,
+    last_name_kana:  document.getElementById('client-last-name-kana').value.trim() || null,
+    first_name_kana: document.getElementById('client-first-name-kana').value.trim() || null,
+    company:         document.getElementById('client-company').value.trim() || null,
+    email:           document.getElementById('client-email').value.trim() || null,
+    phone:           document.getElementById('client-phone').value.trim() || null,
+    postal_code:     document.getElementById('client-postal-code').value.trim() || null,
+    address:         document.getElementById('client-address').value.trim() || null,
+    notes:           document.getElementById('client-notes').value.trim() || null,
   };
-  if (!body.name) return toast('顧客名を入力してください');
   const url = id ? `/api/clients/${id}` : '/api/clients';
   const method = id ? 'PUT' : 'POST';
   const res = await apiFetch(url, method, body);
@@ -298,30 +312,37 @@ async function updateProjectField(id, field, value) {
 }
 
 // ── 受注一覧テーブル ──
-function renderUnifiedProjectsTable() {
-  const tbody  = document.getElementById('projects-unified-body');
-  const filter = document.getElementById('project-status-filter')?.value ?? '';
+// フィルタータブの状態
+let _projectFilter = '';
 
+function setProjectFilter(btn, filter) {
+  _projectFilter = filter;
+  document.querySelectorAll('#project-filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderUnifiedProjectsTable();
+}
+
+function renderUnifiedProjectsTable() {
+  const tbody = document.getElementById('projects-unified-body');
   let rows = [..._projects];
 
   // フィルター
-  if (filter) {
+  if (_projectFilter) {
     rows = rows.filter(row => {
-      if (filter === 'active')    return PROGRESS_CATEGORY.ACTIVE.includes(row.progress);
-      if (filter === 'pending')   return PROGRESS_CATEGORY.PENDING.includes(row.progress);
-      if (filter === 'completed') return PROGRESS_CATEGORY.COMPLETED.includes(row.progress);
-      if (filter === 'cancelled') return row.status === 'cancelled';
+      if (_projectFilter === 'active')    return PROGRESS_CATEGORY.ACTIVE.includes(row.progress);
+      if (_projectFilter === 'pending')   return PROGRESS_CATEGORY.PENDING.includes(row.progress);
+      if (_projectFilter === 'completed') return PROGRESS_CATEGORY.COMPLETED.includes(row.progress);
       return true;
     });
   }
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="11" class="empty">案件がありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">案件がありません</td></tr>';
     return;
   }
 
   tbody.innerHTML = rows.map(row => {
-    // 顧客名
+    // 顧客名（クリックで連絡先ポップアップ）
     const clientName = row.clients?.name ?? '—';
     let clientCell = esc(clientName);
     if (row.client_id) {
@@ -343,28 +364,36 @@ function renderUnifiedProjectsTable() {
     </select>`;
 
     // 金額（請求書 > 見積書 > budget の優先順）
-    const relInv   = _invoices.find(i => i.project_id === row.id || i.project_name === row.title);
-    const relQuote = _quotes.find(q => q.project_id === row.id || q.project_name === row.title);
+    const relInv   = _invoices.find(i => i.project_id === row.id || (i.project_name && i.project_name === row.title));
+    const relQuote = _quotes.find(q => q.project_id === row.id   || (q.project_name && q.project_name === row.title));
     let amount = '—';
-    if (relInv)        amount = '¥' + fmt(Math.round(Number(relInv.amount)    * (1 + Number(relInv.tax_rate)    / 100)));
-    else if (relQuote) amount = '¥' + fmt(Math.round(Number(relQuote.amount)  * (1 + Number(relQuote.tax_rate)  / 100)));
+    if (relInv)        amount = '¥' + fmt(Math.round(Number(relInv.amount)   * (1 + Number(relInv.tax_rate)   / 100)));
+    else if (relQuote) amount = '¥' + fmt(Math.round(Number(relQuote.amount) * (1 + Number(relQuote.tax_rate) / 100)));
     else if (row.budget) amount = '¥' + fmt(row.budget);
 
     // 納品予定日
     const deliveryDate = row.end_date ? fmtDate(row.end_date) : '—';
 
-    // 発行種別プルダウン
+    // 発行種別プルダウン（onchange でPDFボタン列を動的更新）
     const existingType = relInv ? 'invoice' : (relQuote ? 'quote' : '');
-    const docTypeSelect = `<select class="inline-status-select" id="doc-type-${row.id}">
+    const rowId = row.id;
+    const docTypeSelect = `<select class="inline-status-select" id="doc-type-${rowId}" onchange="refreshPdfCell('${rowId}')">
       <option value="">— 選択 —</option>
       <option value="invoice"${existingType === 'invoice' ? ' selected' : ''}>請求</option>
       <option value="quote"${existingType === 'quote'   ? ' selected' : ''}>見積</option>
     </select>`;
 
-    // 出力（PDF）
-    let pdfBtn = '<span style="color:var(--text-muted);font-size:12px;">—</span>';
-    if (relInv)        pdfBtn = `<button class="btn btn-ghost btn-sm" onclick="downloadInvoicePdf('${relInv.id}')">PDF</button>`;
-    else if (relQuote) pdfBtn = `<button class="btn btn-ghost btn-sm" onclick="downloadQuotePdf('${relQuote.id}')">PDF</button>`;
+    // 出力（PDF）: 紐づく書類があればPDFボタン、なければ「発行」リンク
+    let pdfCell = '';
+    if (relInv)        pdfCell = `<button class="btn btn-ghost btn-sm" onclick="downloadInvoicePdf('${relInv.id}')">PDF</button>`;
+    else if (relQuote) pdfCell = `<button class="btn btn-ghost btn-sm" onclick="downloadQuotePdf('${relQuote.id}')">PDF</button>`;
+    else               pdfCell = `<span id="pdf-cell-${rowId}" style="color:var(--text-muted);font-size:12px;">—</span>`;
+
+    // 備考
+    const notes = row.description ? esc(row.description).substring(0, 20) + (row.description.length > 20 ? '…' : '') : '—';
+    const notesCell = row.description
+      ? `<span title="${esc(row.description)}" style="cursor:help;font-size:12px;">${notes}</span>`
+      : `<span style="color:var(--text-muted);font-size:12px;">—</span>`;
 
     return `<tr>
       <td><strong>${esc(row.title || '—')}</strong></td>
@@ -375,11 +404,65 @@ function renderUnifiedProjectsTable() {
       <td style="white-space:nowrap;">${amount}</td>
       <td style="white-space:nowrap;">${deliveryDate}</td>
       <td>${docTypeSelect}</td>
-      <td>${pdfBtn}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openProjectModal('${row.id}')">編集</button></td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteProject('${row.id}')">削除</button></td>
+      <td id="pdf-cell-wrap-${rowId}">${pdfCell}</td>
+      <td>${notesCell}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="openProjectModal('${row.id}')">編集</button></td>
+      <td><button class="btn btn-danger btn-sm" onclick="confirmDeleteProject('${row.id}')">削除</button></td>
     </tr>`;
   }).join('');
+}
+
+// 発行種別変更時にPDFセルを更新
+function refreshPdfCell(rowId) {
+  const type = document.getElementById('doc-type-' + rowId)?.value;
+  const cell = document.getElementById('pdf-cell-wrap-' + rowId);
+  if (!cell) return;
+  if (!type) { cell.innerHTML = '<span style="color:var(--text-muted);font-size:12px;">—</span>'; return; }
+  const row = _projects.find(p => p.id === rowId);
+  if (!row) return;
+  if (type === 'invoice') {
+    const relInv = _invoices.find(i => i.project_id === rowId || (i.project_name && i.project_name === row.title));
+    cell.innerHTML = relInv
+      ? `<button class="btn btn-ghost btn-sm" onclick="downloadInvoicePdf('${relInv.id}')">PDF</button>`
+      : `<button class="btn btn-ghost btn-sm" onclick="openInvoiceForProject('${rowId}')">発行</button>`;
+  } else {
+    const relQuote = _quotes.find(q => q.project_id === rowId || (q.project_name && q.project_name === row.title));
+    cell.innerHTML = relQuote
+      ? `<button class="btn btn-ghost btn-sm" onclick="downloadQuotePdf('${relQuote.id}')">PDF</button>`
+      : `<button class="btn btn-ghost btn-sm" onclick="openQuoteForProject('${rowId}')">発行</button>`;
+  }
+}
+
+// 請求書モーダルを案件情報でプリフィル
+function openInvoiceForProject(projectId) {
+  const p = _projects.find(p => p.id === projectId);
+  if (!p) return;
+  openInvoiceModal();
+  setTimeout(() => {
+    document.getElementById('invoice-project-name').value = p.title || '';
+    const c = _clients.find(c => c.id === p.client_id);
+    if (c) document.getElementById('invoice-client-name').value = c.name || '';
+  }, 50);
+}
+
+// 見積書モーダルを案件情報でプリフィル
+function openQuoteForProject(projectId) {
+  const p = _projects.find(p => p.id === projectId);
+  if (!p) return;
+  openQuoteModal();
+  setTimeout(() => {
+    document.getElementById('quote-project-name').value = p.title || '';
+    const c = _clients.find(c => c.id === p.client_id);
+    if (c) document.getElementById('quote-client-name').value = c.name || '';
+  }, 50);
+}
+
+// 削除確認（confirm不使用 → inline確認）
+function confirmDeleteProject(id) {
+  const row = _projects.find(p => p.id === id);
+  const name = row?.title ?? '案件';
+  if (!window.confirm(`「${name}」を削除しますか？`)) return;
+  deleteProject(id);
 }
 
 
@@ -388,12 +471,21 @@ async function showClientCard(clientId) {
   const client = await fetchJSON(`/api/clients/${clientId}`).catch(() => null);
   if (!client) return;
 
-  setText('cc-name',    client.name || '');
+  // 氏名表示：姓名があれば「姓 名」、なければ name
+  const displayName = (client.last_name || client.first_name)
+    ? [client.last_name, client.first_name].filter(Boolean).join(' ')
+    : (client.name || '');
+  const kana = (client.last_name_kana || client.first_name_kana)
+    ? [client.last_name_kana, client.first_name_kana].filter(Boolean).join(' ')
+    : '';
+  const nameWithKana = kana ? `${displayName}（${kana}）` : displayName;
+
+  setText('cc-name',    nameWithKana);
   setText('cc-company', client.company || '');
-  setText('cc-contact', client.contact_name || '');
   setText('cc-email',   client.email || '');
   setText('cc-phone',   client.phone || '');
-  setText('cc-address', client.address || '');
+  const addrParts = [client.postal_code ? `〒${client.postal_code}` : '', client.address || ''].filter(Boolean).join(' ');
+  setText('cc-address', addrParts);
   setText('cc-notes',   client.notes || '');
   setText('cc-created', fmtDate(client.created_at));
 
@@ -1122,7 +1214,7 @@ async function downloadQuotePdf(id) {
     const blob = await res.blob();
     const cd = res.headers.get('Content-Disposition') ?? '';
     const match = cd.match(/filename\*=UTF-8''(.+)/);
-    const filename = match ? decodeURIComponent(match[1]) : '見積書.pdf';
+        const filename = match ? decodeURIComponent(match[1]) : '見積書.pdf';
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
@@ -1185,7 +1277,7 @@ async function loadDocs(entityType, entityId, tbodyId) {
     <tr>
       <td>📄 ${esc(d.filename)}</td>
       <td>${fmtDate(d.created_at)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteDoc('${d.id}','${entityType}','${entityId}')">削除</button></td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteDoc('${d.id}','${entityType}','${entityId}')"> 削除</button></td>
     </tr>
   `).join('');
 }

@@ -491,3 +491,110 @@ tbody td {
   pointer-events: none;
 }
 #toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── フィルタータブ ── */
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-tab {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.filter-tab:hover { border-color: var(--accent); color: var(--accent); }
+.filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── モバイル対応（768px以下） ── */
+@media (max-width: 768px) {
+  body {
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+  }
+
+  /* サイドバー → 横スクロールトップナビ */
+  #sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: stretch;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--surface);
+  }
+
+  #sidebar-header { display: none; }
+
+  nav { flex: 1; overflow-x: auto; }
+  nav ul {
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    height: 100%;
+  }
+  nav ul li { flex-shrink: 0; }
+  nav ul li a {
+    padding: 12px 16px;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    font-size: 12px;
+    height: 100%;
+    white-space: nowrap;
+  }
+  nav ul li a.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--accent);
+  }
+
+  #main { height: auto; }
+  .page { overflow: visible; }
+
+  /* ダッシュボード */
+  #dash-grid { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  #dash-main { padding-bottom: 20px; overflow: visible; }
+  #dash-news { border-left: none; border-top: 1px solid var(--border); height: auto; }
+  #dash-news .section { height: auto !important; }
+  #news-today { max-height: 300px; }
+
+  /* カード */
+  .cards-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .cards-3 { grid-template-columns: repeat(2, 1fr); }
+  .cards-2 { grid-template-columns: repeat(2, 1fr); }
+  .card { padding: 12px 14px; }
+  .card-value { font-size: 20px; }
+
+  /* ページヘッダー */
+  .page-header { padding: 14px 14px 0; flex-wrap: wrap; gap: 8px; }
+  .page-header h2 { font-size: 17px; }
+
+  /* テーブル */
+  thead th, tbody td { padding: 8px 10px; font-size: 11px; }
+
+  /* セクション */
+  .section { border-radius: 6px; margin-bottom: 14px; }
+
+  /* フォーム行 */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* モーダル */
+  .modal { width: 96vw !important; max-height: 92dvh !important; }
+
+  /* フィルタータブスクロール */
+  .filter-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+
+  /* inline-status-select を小さめに */
+  .inline-status-select { font-size: 11px; max-width: 120px; }
+}

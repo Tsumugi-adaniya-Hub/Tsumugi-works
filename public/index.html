@@ -115,10 +115,6 @@
             <span id="cc-company" class="client-card-value"></span>
           </div>
           <div class="client-card-row">
-            <span class="client-card-label">担当者名</span>
-            <span id="cc-contact" class="client-card-value"></span>
-          </div>
-          <div class="client-card-row">
             <span class="client-card-label">メール</span>
             <span id="cc-email" class="client-card-value"></span>
           </div>
@@ -146,7 +142,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost btn-sm" id="cc-edit-btn">編集</button>
+        <button class="btn btn-primary btn-sm" id="cc-edit-btn">編集</button>
       </div>
     </div>
   </div>
@@ -255,24 +251,23 @@
       <div class="section">
         <div class="section-header">
           <h3>受注一覧</h3>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <select id="project-status-filter" class="btn btn-ghost btn-sm" onchange="renderUnifiedProjectsTable()">
-              <option value="">すべて</option>
-              <option value="active">進行中</option>
-              <option value="pending">未着手</option>
-              <option value="completed">完了</option>
-              <option value="cancelled">キャンセル</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" onclick="loadProjects()">更新</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadProjects()">更新</button>
+        </div>
+        <div style="padding:10px 16px 4px; border-bottom:1px solid var(--border);">
+          <div class="filter-tabs" id="project-filter-tabs">
+            <button class="filter-tab active" data-filter="" onclick="setProjectFilter(this,'')">全案件</button>
+            <button class="filter-tab" data-filter="pending" onclick="setProjectFilter(this,'pending')">未着手</button>
+            <button class="filter-tab" data-filter="active" onclick="setProjectFilter(this,'active')">進行中</button>
+            <button class="filter-tab" data-filter="completed" onclick="setProjectFilter(this,'completed')">完了</button>
           </div>
         </div>
         <div class="table-wrap">
           <table id="projects-unified-table">
             <thead><tr>
               <th>案件名</th><th>顧客名</th><th>問い合わせ日</th><th>進行度</th><th>入金状況</th>
-              <th>金額</th><th>納品予定日</th><th>発行種別</th><th>出力</th><th>編集</th><th>削除</th>
+              <th>金額</th><th>納品予定日</th><th>発行種別</th><th>出力</th><th>備考</th><th>編集</th><th>削除</th>
             </tr></thead>
-            <tbody id="projects-unified-body"><tr><td colspan="11" class="loading">読み込み中...</td></tr></tbody>
+            <tbody id="projects-unified-body"><tr><td colspan="12" class="loading">読み込み中...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -318,12 +313,24 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="client-id">
-      <div class="form-group"><label>顧客名 *</label><input type="text" id="client-name" placeholder="例：株式会社サンプル"></div>
+      <div class="form-row">
+        <div class="form-group"><label>姓 *</label><input type="text" id="client-last-name" placeholder="山田"></div>
+        <div class="form-group"><label>名</label><input type="text" id="client-first-name" placeholder="花子"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>姓（カナ）</label><input type="text" id="client-last-name-kana" placeholder="ヤマダ"></div>
+        <div class="form-group"><label>名（カナ）</label><input type="text" id="client-first-name-kana" placeholder="ハナコ"></div>
+      </div>
+      <div class="form-group"><label>会社名</label><input type="text" id="client-company" placeholder="株式会社〇〇"></div>
       <div class="form-row">
         <div class="form-group"><label>メール</label><input type="email" id="client-email" placeholder="email@example.com"></div>
-        <div class="form-group"><label>電話</label><input type="tel" id="client-phone" placeholder="03-0000-0000"></div>
+        <div class="form-group"><label>電話</label><input type="tel" id="client-phone" placeholder="090-0000-0000"></div>
       </div>
-      <div class="form-group"><label>住所</label><input type="text" id="client-address"></div>
+      <div class="form-row">
+        <div class="form-group"><label>郵便番号</label><input type="text" id="client-postal-code" placeholder="123-4567"></div>
+        <div class="form-group" style="grid-column:span 1;"></div>
+      </div>
+      <div class="form-group"><label>住所（都道府県から）</label><input type="text" id="client-address" placeholder="東京都渋谷区〇〇…"></div>
       <div class="form-group"><label>備考</label><textarea id="client-notes"></textarea></div>
     </div>
     <div class="modal-footer">

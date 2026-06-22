@@ -398,35 +398,20 @@
   </div>
 </div>
 
-<!-- ========== モーダル：請求 ========== -->
+<!-- ========== モーダル：請求書 ========== -->
 <div class="modal-overlay" id="modal-invoice">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="modal-invoice-title">請求を追加</h3>
+      <h3 id="modal-invoice-title">請求書を作成</h3>
       <button class="modal-close" onclick="closeModal('modal-invoice')">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="invoice-id">
       <div class="form-row">
         <div class="form-group">
-          <label>顧客</label>
-          <input type="text" id="invoice-client-name" list="invoice-client-datalist"
-                 autocomplete="off" placeholder="顧客名（フリー入力）">
-          <datalist id="invoice-client-datalist"></datalist>
-          <label class="save-client-label">
-            <input type="checkbox" id="invoice-save-client">
-            この顧客名を保存する
-          </label>
+          <label>請求書番号</label>
+          <input type="text" id="invoice-number" placeholder="例：INV-2026-001">
         </div>
-        <div class="form-group">
-          <label>案件</label>
-          <input type="text" id="invoice-project-name" list="invoice-project-datalist"
-                 autocomplete="off" placeholder="案件名（フリー入力）">
-          <datalist id="invoice-project-datalist"></datalist>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>金額（税抜）*</label><input type="number" id="invoice-amount" placeholder="0"></div>
         <div class="form-group">
           <label>ステータス</label>
           <select id="invoice-status">
@@ -438,10 +423,39 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>発行日</label><input type="date" id="invoice-issue-date"></div>
-        <div class="form-group"><label>支払期限</label><input type="date" id="invoice-due-date"></div>
+        <div class="form-group">
+          <label>請求先（顧客名）</label>
+          <input type="text" id="invoice-client-name" list="invoice-client-datalist"
+                 autocomplete="off" placeholder="顧客名">
+          <datalist id="invoice-client-datalist"></datalist>
+          <label class="save-client-label">
+            <input type="checkbox" id="invoice-save-client">
+            この顧客名を保存する
+          </label>
+        </div>
+        <div class="form-group">
+          <label>案件名</label>
+          <input type="text" id="invoice-project-name" list="invoice-project-datalist"
+                 autocomplete="off" placeholder="案件名">
+          <datalist id="invoice-project-datalist"></datalist>
+        </div>
       </div>
-      <div class="form-group"><label>備考</label><textarea id="invoice-notes"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>発行日</label><input type="date" id="invoice-issue-date"></div>
+        <div class="form-group"><label>お支払期限</label><input type="date" id="invoice-due-date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>金額（税抜）*</label><input type="number" id="invoice-amount" placeholder="0"></div>
+        <div class="form-group">
+          <label>消費税率</label>
+          <select id="invoice-tax-rate">
+            <option value="10">10%（標準税率）</option>
+            <option value="8">8%（軽減税率）</option>
+            <option value="0">非課税・免税</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>備考・振込先</label><textarea id="invoice-notes" placeholder="振込先口座情報など"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-invoice')">キャンセル</button>
@@ -490,35 +504,20 @@
   </div>
 </div>
 
-<!-- ========== モーダル：見積 ========== -->
+<!-- ========== モーダル：見積書 ========== -->
 <div class="modal-overlay" id="modal-quote">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="modal-quote-title">見積を追加</h3>
+      <h3 id="modal-quote-title">見積書を作成</h3>
       <button class="modal-close" onclick="closeModal('modal-quote')">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="quote-id">
       <div class="form-row">
         <div class="form-group">
-          <label>顧客</label>
-          <input type="text" id="quote-client-name" list="quote-client-datalist"
-                 autocomplete="off" placeholder="顧客名（フリー入力）">
-          <datalist id="quote-client-datalist"></datalist>
-          <label class="save-client-label">
-            <input type="checkbox" id="quote-save-client">
-            この顧客名を保存する
-          </label>
+          <label>見積書番号</label>
+          <input type="text" id="quote-number" placeholder="例：QUO-2026-001">
         </div>
-        <div class="form-group">
-          <label>案件</label>
-          <input type="text" id="quote-project-name" list="quote-project-datalist"
-                 autocomplete="off" placeholder="案件名（フリー入力）">
-          <datalist id="quote-project-datalist"></datalist>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>金額（税抜）*</label><input type="number" id="quote-amount" placeholder="0"></div>
         <div class="form-group">
           <label>ステータス</label>
           <select id="quote-status">
@@ -530,8 +529,37 @@
         </div>
       </div>
       <div class="form-row">
+        <div class="form-group">
+          <label>見積先（顧客名）</label>
+          <input type="text" id="quote-client-name" list="quote-client-datalist"
+                 autocomplete="off" placeholder="顧客名">
+          <datalist id="quote-client-datalist"></datalist>
+          <label class="save-client-label">
+            <input type="checkbox" id="quote-save-client">
+            この顧客名を保存する
+          </label>
+        </div>
+        <div class="form-group">
+          <label>案件名</label>
+          <input type="text" id="quote-project-name" list="quote-project-datalist"
+                 autocomplete="off" placeholder="案件名">
+          <datalist id="quote-project-datalist"></datalist>
+        </div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label>発行日</label><input type="date" id="quote-issue-date"></div>
         <div class="form-group"><label>有効期限</label><input type="date" id="quote-valid-until"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>金額（税抜）*</label><input type="number" id="quote-amount" placeholder="0"></div>
+        <div class="form-group">
+          <label>消費税率</label>
+          <select id="quote-tax-rate">
+            <option value="10">10%（標準税率）</option>
+            <option value="8">8%（軽減税率）</option>
+            <option value="0">非課税・免税</option>
+          </select>
+        </div>
       </div>
       <div class="form-group"><label>備考</label><textarea id="quote-notes"></textarea></div>
     </div>

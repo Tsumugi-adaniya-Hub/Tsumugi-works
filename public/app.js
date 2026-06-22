@@ -782,10 +782,11 @@ function renderExpensesTable() {
 }
 
 async function openInvoiceModal(id) {
-  clearForm('modal-invoice', ['invoice-id','invoice-amount','invoice-notes','invoice-issue-date','invoice-due-date']);
+  clearForm('modal-invoice', ['invoice-id','invoice-number','invoice-amount','invoice-notes','invoice-issue-date','invoice-due-date']);
   document.getElementById('invoice-client-name').value = '';
   document.getElementById('invoice-project-name').value = '';
   document.getElementById('invoice-save-client').checked = false;
+  document.getElementById('invoice-tax-rate').value = '10';
 
   // datalist をセット
   const saved = await fetchJSON('/api/client-names').catch(() => []);
@@ -800,17 +801,23 @@ async function openInvoiceModal(id) {
   if (id) {
     const inv = _invoices.find(i => i.id === id);
     if (!inv) return;
-    document.getElementById('modal-invoice-title').textContent = '請求を編集';
+    document.getElementById('modal-invoice-title').textContent = '請求書を編集';
     document.getElementById('invoice-id').value = inv.id;
+    document.getElementById('invoice-number').value = inv.invoice_number ?? '';
     document.getElementById('invoice-client-name').value = inv.clients?.name ?? _clients.find(c => c.id === inv.client_id)?.name ?? '';
     document.getElementById('invoice-project-name').value = inv.projects?.title ?? _projects.find(p => p.id === inv.project_id)?.title ?? '';
     document.getElementById('invoice-amount').value = inv.amount;
+    document.getElementById('invoice-tax-rate').value = inv.tax_rate ?? '10';
     document.getElementById('invoice-status').value = inv.status;
     document.getElementById('invoice-issue-date').value = inv.issue_date ?? today;
     document.getElementById('invoice-due-date').value = inv.due_date ?? '';
     document.getElementById('invoice-notes').value = inv.notes ?? '';
   } else {
-    document.getElementById('modal-invoice-title').textContent = '請求を追加';
+    document.getElementById('modal-invoice-title').textContent = '請求書を作成';
+    // 請求書番号を自動生成（INV-YYYY-XXX）
+    const year = new Date().getFullYear();
+    const seq  = String(_invoices.length + 1).padStart(3, '0');
+    document.getElementById('invoice-number').value = `INV-${year}-${seq}`;
   }
   openModal('modal-invoice');
 }
@@ -844,14 +851,16 @@ async function saveInvoice() {
   }
 
   const body = {
-    client_id:    clientId,
-    project_id:   projectId,
-    project_name: projectNameInput || null,
-    amount:       Number(document.getElementById('invoice-amount').value) || 0,
-    status:       document.getElementById('invoice-status').value,
-    issue_date:   document.getElementById('invoice-issue-date').value || null,
-    due_date:     document.getElementById('invoice-due-date').value || null,
-    notes:      document.getElementById('invoice-notes').value.trim() || null,
+    client_id:      clientId,
+    project_id:     projectId,
+    project_name:   projectNameInput || null,
+    invoice_number: document.getElementById('invoice-number').value.trim() || null,
+    amount:         Number(document.getElementById('invoice-amount').value) || 0,
+    tax_rate:       Number(document.getElementById('invoice-tax-rate').value),
+    status:         document.getElementById('invoice-status').value,
+    issue_date:     document.getElementById('invoice-issue-date').value || null,
+    due_date:       document.getElementById('invoice-due-date').value || null,
+    notes:          document.getElementById('invoice-notes').value.trim() || null,
   };
   if (!body.amount) return toast('金額を入力してください');
   const url = id ? `/api/invoices/${id}` : '/api/invoices';
@@ -859,7 +868,7 @@ async function saveInvoice() {
   const res = await apiFetch(url, method, body);
   if (res.error) return toast(res.error, true);
   closeModal('modal-invoice');
-  toast(id ? '請求を更新しました' : '請求を追加しました');
+  toast(id ? '請求書を更新しました' : '請求書を作成しました');
   loadFinance();
 }
 
@@ -1129,10 +1138,11 @@ function renderQuotesTable() {
 }
 
 async function openQuoteModal(id) {
-  clearForm('modal-quote', ['quote-id','quote-amount','quote-notes','quote-issue-date','quote-valid-until']);
+  clearForm('modal-quote', ['quote-id','quote-number','quote-amount','quote-notes','quote-issue-date','quote-valid-until']);
   document.getElementById('quote-client-name').value = '';
   document.getElementById('quote-project-name').value = '';
   document.getElementById('quote-save-client').checked = false;
+  document.getElementById('quote-tax-rate').value = '10';
 
   // datalist をセット
   const saved = await fetchJSON('/api/client-names').catch(() => []);
@@ -1147,17 +1157,23 @@ async function openQuoteModal(id) {
   if (id) {
     const q = _quotes.find(q => q.id === id);
     if (!q) return;
-    document.getElementById('modal-quote-title').textContent = '見積を編集';
+    document.getElementById('modal-quote-title').textContent = '見積書を編集';
     document.getElementById('quote-id').value = q.id;
+    document.getElementById('quote-number').value = q.quote_number ?? '';
     document.getElementById('quote-client-name').value = q.clients?.name ?? _clients.find(c => c.id === q.client_id)?.name ?? '';
     document.getElementById('quote-project-name').value = q.projects?.title ?? _projects.find(p => p.id === q.project_id)?.title ?? '';
     document.getElementById('quote-amount').value = q.amount;
+    document.getElementById('quote-tax-rate').value = q.tax_rate ?? '10';
     document.getElementById('quote-status').value = q.status;
     document.getElementById('quote-issue-date').value = q.issue_date ?? today;
     document.getElementById('quote-valid-until').value = q.valid_until ?? '';
     document.getElementById('quote-notes').value = q.notes ?? '';
   } else {
-    document.getElementById('modal-quote-title').textContent = '見積を追加';
+    document.getElementById('modal-quote-title').textContent = '見積書を作成';
+    // 見積書番号を自動生成（QUO-YYYY-XXX）
+    const year = new Date().getFullYear();
+    const seq  = String(_quotes.length + 1).padStart(3, '0');
+    document.getElementById('quote-number').value = `QUO-${year}-${seq}`;
   }
   openModal('modal-quote');
 }
@@ -1194,7 +1210,9 @@ async function saveQuote() {
     client_id:    clientId,
     project_id:   projectId,
     project_name: projectNameInput || null,
+    quote_number: document.getElementById('quote-number').value.trim() || null,
     amount:       Number(document.getElementById('quote-amount').value) || 0,
+    tax_rate:     Number(document.getElementById('quote-tax-rate').value),
     status:       document.getElementById('quote-status').value,
     issue_date:   document.getElementById('quote-issue-date').value || null,
     valid_until:  document.getElementById('quote-valid-until').value || null,
@@ -1206,7 +1224,7 @@ async function saveQuote() {
   const res = await apiFetch(url, method, body);
   if (res.error) return toast(res.error, true);
   closeModal('modal-quote');
-  toast(id ? '見積を更新しました' : '見積を追加しました');
+  toast(id ? '見積書を更新しました' : '見積書を作成しました');
   loadFinance();
 }
 

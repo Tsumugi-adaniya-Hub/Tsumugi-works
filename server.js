@@ -194,20 +194,20 @@ app.get('/api/invoices', async (req, res) => {
 });
 
 app.post('/api/invoices', async (req, res) => {
-  const { client_id, project_id, invoice_number, amount, tax_rate, status, issue_date, due_date, notes } = req.body;
+  const { client_id, project_id, project_name, invoice_number, amount, tax_rate, status, issue_date, due_date, notes } = req.body;
   const { data, error } = await supabase
     .from('invoices')
-    .insert({ client_id, project_id, invoice_number, amount, tax_rate, status, issue_date, due_date, notes })
+    .insert({ client_id, project_id, project_name: project_name || null, invoice_number, amount, tax_rate, status, issue_date, due_date, notes })
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '請求書の登録に失敗しました' }); }
   res.status(201).json(data);
 });
 
 app.put('/api/invoices/:id', async (req, res) => {
-  const { client_id, project_id, invoice_number, amount, tax_rate, status, issue_date, due_date, notes } = req.body;
+  const { client_id, project_id, project_name, invoice_number, amount, tax_rate, status, issue_date, due_date, notes } = req.body;
   const { data, error } = await supabase
     .from('invoices')
-    .update({ client_id, project_id, invoice_number, amount, tax_rate, status, issue_date, due_date, notes })
+    .update({ client_id, project_id, project_name: project_name || null, invoice_number, amount, tax_rate, status, issue_date, due_date, notes })
     .eq('id', req.params.id)
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '請求書の更新に失敗しました' }); }
@@ -261,7 +261,7 @@ app.delete('/api/expenses/:id', async (req, res) => {
 });
 
 // ============================================================
-// 見積もり CRUD
+// 見積 CRUD
 // ============================================================
 app.get('/api/quotes', async (req, res) => {
   const { data, error } = await supabase
@@ -273,20 +273,20 @@ app.get('/api/quotes', async (req, res) => {
 });
 
 app.post('/api/quotes', async (req, res) => {
-  const { client_id, project_id, quote_number, amount, tax_rate, status, issue_date, valid_until, notes } = req.body;
+  const { client_id, project_id, project_name, quote_number, amount, tax_rate, status, issue_date, valid_until, notes } = req.body;
   const { data, error } = await supabase
     .from('quotes')
-    .insert({ client_id, project_id, quote_number, amount, tax_rate, status, issue_date, valid_until, notes })
+    .insert({ client_id, project_id, project_name: project_name || null, quote_number, amount, tax_rate, status, issue_date, valid_until, notes })
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '見積書の登録に失敗しました' }); }
   res.status(201).json(data);
 });
 
 app.put('/api/quotes/:id', async (req, res) => {
-  const { client_id, project_id, quote_number, amount, tax_rate, status, issue_date, valid_until, notes } = req.body;
+  const { client_id, project_id, project_name, quote_number, amount, tax_rate, status, issue_date, valid_until, notes } = req.body;
   const { data, error } = await supabase
     .from('quotes')
-    .update({ client_id, project_id, quote_number, amount, tax_rate, status, issue_date, valid_until, notes })
+    .update({ client_id, project_id, project_name: project_name || null, quote_number, amount, tax_rate, status, issue_date, valid_until, notes })
     .eq('id', req.params.id)
     .select().single();
   if (error) { console.error(error); return res.status(400).json({ error: '見積書の更新に失敗しました' }); }
@@ -299,7 +299,7 @@ app.delete('/api/quotes/:id', async (req, res) => {
   res.status(204).end();
 });
 
-// 見積もり → 請求書に変換
+// 見積 → 請求書に変換
 app.post('/api/quotes/:id/convert', async (req, res) => {
   const { data: q, error } = await supabase
     .from('quotes')
@@ -309,12 +309,13 @@ app.post('/api/quotes/:id/convert', async (req, res) => {
   if (error) return res.status(404).json({ error: '見積書が見つかりません' });
 
   const { data: inv, error: invErr } = await supabase.from('invoices').insert({
-    client_id:  q.client_id,
-    project_id: q.project_id,
-    amount:     q.amount,
-    tax_rate:   q.tax_rate,
-    status:     'draft',
-    issue_date: new Date().toISOString().split('T')[0],
+    client_id:    q.client_id,
+    project_id:   q.project_id,
+    project_name: q.project_name,
+    amount:       q.amount,
+    tax_rate:     q.tax_rate,
+    status:       'draft',
+    issue_date:   new Date().toISOString().split('T')[0],
     notes: q.notes
       ? `見積書 ${q.quote_number || ''} より転換\n${q.notes}`
       : `見積書 ${q.quote_number || ''} より転換`,
@@ -325,7 +326,7 @@ app.post('/api/quotes/:id/convert', async (req, res) => {
   res.status(201).json(inv);
 });
 
-// 見積もり PDF 生成
+// 見積 PDF 生成
 app.get('/api/quotes/:id/pdf', async (req, res) => {
   const { data: q, error } = await supabase
     .from('quotes')
@@ -339,7 +340,7 @@ app.get('/api/quotes/:id/pdf', async (req, res) => {
   const issueDate  = q.issue_date  ? new Date(q.issue_date).toLocaleDateString('ja-JP')  : '—';
   const validUntil = q.valid_until ? new Date(q.valid_until).toLocaleDateString('ja-JP') : '—';
   const clientName   = q.clients?.name    ?? '—';
-  const projectTitle = q.projects?.title  ?? '—';
+  const projectTitle = q.projects?.title ?? q.project_name ?? '—';
   const filename = `見積書_${clientName}_${(q.issue_date || '').slice(0, 7)}.pdf`;
 
   const doc = new PDFDocument({ size: 'A4', margin: 60 });
@@ -393,15 +394,14 @@ app.get('/api/quotes/:id/pdf', async (req, res) => {
 
 // --- Google Calendar OAuth ---
 const TOKEN_PATH  = path.join(__dirname, '.google-token.json');
-const oauthStates = new Map(); // CSRF state ストア
+const oauthStates = new Map();
 
 function getGoogleOAuth2Client() {
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    `${APP_URL}/auth/google/callback`   // ← APP_URL 環境変数で切り替え
+    `${APP_URL}/auth/google/callback`
   );
-  // 環境変数優先、なければファイルから読む
   if (process.env.GOOGLE_TOKEN) {
     client.setCredentials(JSON.parse(process.env.GOOGLE_TOKEN));
   } else if (fs.existsSync(TOKEN_PATH)) {
@@ -414,7 +414,6 @@ function hasGoogleToken() {
   return !!(process.env.GOOGLE_TOKEN || fs.existsSync(TOKEN_PATH));
 }
 
-// Google 認証ページ
 app.get('/auth/google', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID) {
     return res.status(400).send('GOOGLE_CLIENT_ID が設定されていません');
@@ -422,7 +421,6 @@ app.get('/auth/google', (req, res) => {
   try {
     const state = crypto.randomUUID();
     oauthStates.set(state, Date.now());
-    // 古いstateを掃除（10分超）
     for (const [k, v] of oauthStates) {
       if (Date.now() - v > 10 * 60 * 1000) oauthStates.delete(k);
     }
@@ -442,13 +440,10 @@ app.get('/auth/google', (req, res) => {
 app.get('/auth/google/callback', async (req, res) => {
   try {
     const { code, state } = req.query;
-
-    // CSRF チェック
     if (!state || !oauthStates.has(state)) {
       return res.status(400).send('不正なリクエストです（stateが一致しません）');
     }
     oauthStates.delete(state);
-
     const auth = getGoogleOAuth2Client();
     const { tokens } = await auth.getToken(code);
     auth.setCredentials(tokens);
@@ -468,7 +463,6 @@ app.get('/auth/google/callback', async (req, res) => {
   }
 });
 
-// Google Calendar イベント取得
 app.get('/api/external/calendar/events', async (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID) {
     return res.json({ data: [], configured: false });
@@ -479,7 +473,7 @@ app.get('/api/external/calendar/events', async (req, res) => {
   try {
     const auth     = getGoogleOAuth2Client();
     const calendar = google.calendar({ version: 'v3', auth });
-    const now          = new Date();
+    const now           = new Date();
     const twoWeeksLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     const response = await calendar.events.list({
       calendarId:   'primary',
@@ -493,7 +487,6 @@ app.get('/api/external/calendar/events', async (req, res) => {
   } catch (err) {
     if (err.code === 401) {
       if (fs.existsSync(TOKEN_PATH)) fs.unlinkSync(TOKEN_PATH);
-      // GOOGLE_TOKENは環境変数なので削除不可（再認証してRenderで更新してください）
       return res.json({ data: [], configured: false, auth_url: '/auth/google' });
     }
     console.error(err);
@@ -573,7 +566,7 @@ app.get('/api/external/notion/tasks', async (req, res) => {
 });
 
 // ============================================================
-// 顧客名マスタ（data/clients.json で管理 ← public/ 外に移動済み）
+// 顧客名マスタ（data/clients.json）
 // ============================================================
 const CLIENT_NAMES_PATH = path.join(__dirname, 'data', 'clients.json');
 
@@ -685,7 +678,7 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
   const issueDate   = inv.issue_date ? new Date(inv.issue_date).toLocaleDateString('ja-JP') : '—';
   const dueDate     = inv.due_date   ? new Date(inv.due_date).toLocaleDateString('ja-JP') : '—';
   const clientName   = inv.clients?.name   ?? '—';
-  const projectTitle = inv.projects?.title ?? '—';
+  const projectTitle = inv.projects?.title ?? inv.project_name ?? '—';
   const filename = `請求書_${clientName}_${(inv.issue_date || '').slice(0, 7)}.pdf`;
 
   const doc = new PDFDocument({ size: 'A4', margin: 60 });
@@ -794,6 +787,75 @@ app.delete('/api/documents/:id', async (req, res) => {
   const { error } = await supabase.from('documents').delete().eq('id', req.params.id);
   if (error) { console.error(error); return res.status(400).json({ error: 'ファイルの削除に失敗しました' }); }
   res.status(204).end();
+});
+
+// ============================================================
+// Notion 案件 更新・追加
+// ============================================================
+
+// 進行度・入金状況をNotionページに書き戻す
+app.patch('/api/external/notion/projects/:pageId', async (req, res) => {
+  const token = process.env.NOTION_TOKEN;
+  if (!token) return res.status(400).json({ error: 'NOTION_TOKEN not set' });
+
+  const { progress, payment } = req.body;
+  const properties = {};
+  if (progress !== undefined) properties['進行度'] = { status: { name: progress } };
+  if (payment  !== undefined) properties['入金状況'] = { status: { name: payment } };
+  if (!Object.keys(properties).length) return res.status(400).json({ error: '更新対象がありません' });
+
+  try {
+    const r = await fetch(`https://api.notion.com/v1/pages/${req.params.pageId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization':  `Bearer ${token}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type':   'application/json',
+      },
+      body: JSON.stringify({ properties }),
+    });
+    const json = await r.json();
+    if (json.object === 'error') throw new Error(json.message);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[Notion PATCH]', err);
+    res.status(500).json({ error: 'Notionの更新に失敗しました' });
+  }
+});
+
+// Notionに新規案件ページを追加
+app.post('/api/external/notion/projects', async (req, res) => {
+  const token = process.env.NOTION_TOKEN;
+  const dbId  = process.env.NOTION_PROJECTS_DB_ID;
+  if (!token || !dbId) return res.status(400).json({ error: 'NOTION_TOKEN または NOTION_PROJECTS_DB_ID が未設定' });
+
+  const { client_name, project_name, progress, inquiry_date, delivery_date } = req.body;
+
+  const properties = {
+    '顧客名': { title: [{ text: { content: client_name || '' } }] },
+  };
+  if (project_name)   properties['案件名']     = { rich_text: [{ text: { content: project_name } }] };
+  if (progress)       properties['進行度']      = { status: { name: progress } };
+  if (inquiry_date)   properties['問い合わせ日'] = { date: { start: inquiry_date } };
+  if (delivery_date)  properties['納品予定日']   = { date: { start: delivery_date } };
+
+  try {
+    const r = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: {
+        'Authorization':  `Bearer ${token}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type':   'application/json',
+      },
+      body: JSON.stringify({ parent: { database_id: dbId }, properties }),
+    });
+    const json = await r.json();
+    if (json.object === 'error') throw new Error(json.message);
+    res.status(201).json({ ok: true, id: json.id, url: json.url });
+  } catch (err) {
+    console.error('[Notion POST project]', err);
+    res.status(500).json({ error: 'Notionへの追加に失敗しました' });
+  }
 });
 
 app.listen(PORT, () => {

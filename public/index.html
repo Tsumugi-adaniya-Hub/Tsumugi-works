@@ -39,13 +39,13 @@
       <div id="dash-main">
         <div style="padding: 20px 28px 0 28px;">
           <div class="cards cards-4" id="dash-cards">
-            <div class="card"><div class="card-label">顧客数</div><div class="card-value" id="dc-clients">—</div></div>
-            <div class="card card-accent"><div class="card-label">進行中案件</div><div class="card-value" id="dc-active">—</div></div>
-            <div class="card card-info"><div class="card-label">入金済売上（税込）</div><div class="card-value" id="dc-paid">—</div></div>
-            <div class="card card-warning"><div class="card-label">未収金（税込）</div><div class="card-value" id="dc-unpaid">—</div></div>
+            <div class="card"><div class="card-label">総案件数</div><div class="card-value" id="dc-total">—</div></div>
+            <div class="card card-warning"><div class="card-label">未着手</div><div class="card-value" id="dc-pending">—</div></div>
+            <div class="card card-accent"><div class="card-label">進行中</div><div class="card-value" id="dc-active">—</div></div>
+            <div class="card card-info"><div class="card-label">完了</div><div class="card-value" id="dc-completed">—</div></div>
           </div>
           <div class="cards cards-2">
-            <div class="card"><div class="card-label">総経費</div><div class="card-value" id="dc-expenses">—</div></div>
+            <div class="card"><div class="card-label">入金済売上（税込）</div><div class="card-value" id="dc-paid">—</div></div>
             <div class="card card-accent"><div class="card-label">利益（入金済−経費）</div><div class="card-value" id="dc-profit">—</div></div>
           </div>
         </div>
@@ -78,7 +78,7 @@
             <div class="section-header"><h3>最近の受注</h3></div>
             <div class="table-wrap">
               <table id="dash-projects-table">
-                <thead><tr><th>案件名</th><th>顧客</th><th>ステータス</th><th>予算</th></tr></thead>
+                <thead><tr><th>案件名</th><th>顧客</th><th>進行度</th><th>問い合わせ日</th></tr></thead>
                 <tbody id="dash-projects-body"><tr><td colspan="4" class="loading">読み込み中...</td></tr></tbody>
               </table>
             </div>
@@ -259,15 +259,14 @@
         </div>
       </div>
       <!-- Notionデータソースバナー -->
-      <div id="notion-projects-banner" style="display:none; margin-bottom:12px; padding:10px 16px; background:var(--accent-light); border-radius:8px; font-size:12px; color:var(--accent); display:flex; align-items:center; gap:8px;">
+      <div id="notion-projects-banner" style="display:none; margin-bottom:12px; padding:10px 16px; background:var(--accent-light); border-radius:8px; font-size:12px; color:var(--accent);">
         <span>Notion 案件管理DB と連携中</span>
-        <a id="notion-projects-link" href="#" target="_blank" style="margin-left:auto; color:var(--accent); font-size:11px;">Notionで開く →</a>
       </div>
       <div class="section">
         <div class="section-header">
           <h3>受注一覧</h3>
           <div style="display:flex; gap:8px; align-items:center;">
-            <select id="project-status-filter" class="btn btn-ghost btn-sm" onchange="renderProjectsTable()">
+            <select id="project-status-filter" class="btn btn-ghost btn-sm" onchange="renderUnifiedProjectsTable()">
               <option value="">すべて</option>
               <option value="active">進行中</option>
               <option value="pending">未着手</option>
@@ -278,15 +277,12 @@
           </div>
         </div>
         <div class="table-wrap">
-          <!-- Notion モード -->
-          <table id="notion-projects-table" style="display:none;">
-            <thead><tr><th>案件名</th><th>問い合わせ日</th><th>顧客名</th><th>進行度</th><th>入金状況</th><th>納品予定日</th><th></th></tr></thead>
-            <tbody id="notion-projects-body"><tr><td colspan="7" class="loading">読み込み中...</td></tr></tbody>
-          </table>
-          <!-- ローカル（Supabase）モード -->
-          <table id="local-projects-table">
-            <thead><tr><th>案件名</th><th>顧客</th><th>ステータス</th><th>予算</th><th>開始日</th><th></th></tr></thead>
-            <tbody id="projects-table-body"><tr><td colspan="6" class="loading">読み込み中...</td></tr></tbody>
+          <table id="projects-unified-table">
+            <thead><tr>
+              <th>案件名</th><th>顧客名</th><th>問い合わせ日</th><th>進行度</th><th>入金状況</th>
+              <th>金額</th><th>納品予定日</th><th>発行種別</th><th>出力</th><th>編集</th><th>削除</th>
+            </tr></thead>
+            <tbody id="projects-unified-body"><tr><td colspan="11" class="loading">読み込み中...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -298,39 +294,17 @@
     <div class="page-header">
       <div><h2>財務管理</h2></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="openInvoiceModal()">+ 請求を追加</button>
-        <button class="btn btn-primary" onclick="openQuoteModal()">+ 見積を追加</button>
         <button class="btn btn-ghost" onclick="openExpenseModal()">+ 経費を追加</button>
       </div>
     </div>
     <div style="padding: 20px 28px 0;">
-      <div class="cards cards-4">
-        <div class="card card-accent"><div class="card-label">入金済（税込）</div><div class="card-value" id="fi-paid">—</div></div>
-        <div class="card card-warning"><div class="card-label">未収金（税込）</div><div class="card-value" id="fi-unpaid">—</div></div>
+      <div class="cards cards-3">
+        <div class="card card-accent"><div class="card-label">入金済売上（税込）</div><div class="card-value" id="fi-paid">—</div></div>
         <div class="card"><div class="card-label">総経費</div><div class="card-value" id="fi-expenses">—</div></div>
-        <div class="card card-info"><div class="card-label">利益</div><div class="card-value" id="fi-profit">—</div></div>
+        <div class="card card-info"><div class="card-label">利益（入金済−経費）</div><div class="card-value" id="fi-profit">—</div></div>
       </div>
     </div>
     <div style="padding: 0 28px;">
-      <div class="section" style="margin-bottom:16px;">
-        <div class="section-header">
-          <h3>請求・見積一覧</h3>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <select id="fi-doc-filter" class="btn btn-ghost btn-sm" onchange="renderInvoicesQuotesTable()">
-              <option value="">すべて</option>
-              <option value="invoice">請求のみ</option>
-              <option value="quote">見積のみ</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" onclick="loadFinance()">更新</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>種別</th><th>顧客</th><th>案件</th><th>金額（税込）</th><th>ステータス</th><th>発行日</th><th>期日/期限</th><th>PDF</th><th></th></tr></thead>
-            <tbody id="invoices-quotes-body"><tr><td colspan="9" class="loading">読み込み中...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
       <div class="section">
         <div class="section-header"><h3>経費一覧</h3></div>
         <div class="table-wrap">
@@ -401,10 +375,26 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>開始日</label><input type="date" id="project-start"></div>
-        <div class="form-group"><label>終了日</label><input type="date" id="project-end"></div>
+        <div class="form-group"><label>問い合わせ日</label><input type="date" id="project-inquiry-date"></div>
+        <div class="form-group"><label>納品予定日</label><input type="date" id="project-delivery-date"></div>
       </div>
-      <div class="form-group"><label>予算（円）</label><input type="number" id="project-budget" placeholder="0"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>進行度</label>
+          <select id="project-notion-progress">
+            <option value="相談のみ">相談のみ</option>
+            <option value="見積もり作成中">見積もり作成中</option>
+            <option value="見積もり済み">見積もり済み</option>
+            <option value="受注確定">受注確定</option>
+            <option value="契約締結">契約締結</option>
+            <option value="フェーズ１（LP制作）">フェーズ１（LP制作）</option>
+            <option value="フェース２（事務代行）">フェース２（事務代行）</option>
+            <option value="フェーズ3（業務効率化）">フェーズ3（業務効率化）</option>
+            <option value="納品完了">納品完了</option>
+          </select>
+        </div>
+        <div class="form-group"><label>金額（円）</label><input type="number" id="project-budget" placeholder="0"></div>
+      </div>
       <div class="form-group"><label>詳細</label><textarea id="project-description"></textarea></div>
     </div>
     <div class="modal-footer">

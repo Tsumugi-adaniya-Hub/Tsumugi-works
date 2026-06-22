@@ -307,6 +307,18 @@ async function updateProjectField(id, field, value) {
   if (res.error) { toast(res.error, true); return; }
   const p = _projects.find(p => p.id === id);
   if (p) p[field] = value;
+
+  // payment_status 変更時は紐づく請求書の status も同期
+  if (field === 'payment_status') {
+    const invStatusMap = { '入金済': 'paid', '請求書送付済': 'sent', '未入金': 'draft' };
+    const newInvStatus = invStatusMap[value];
+    const relInv = _invoices.find(i => i.project_id === id || (i.project_name && p && i.project_name === p.title));
+    if (relInv && newInvStatus) {
+      const r = await apiFetch(`/api/invoices/${relInv.id}`, 'PUT', { status: newInvStatus });
+      if (!r.error) relInv.status = newInvStatus;
+    }
+  }
+
   updateProjectStats();
   toast('更新しました');
 }
@@ -630,8 +642,24 @@ async function loadFinance() {
 }
 
 function updateFinanceStats() {
-  const paid = _invoices.filter(i => i.status === 'paid')
+  // 請求書の入金済合計
+  const invoicePaid = _invoices.filter(i => i.status === 'paid')
     .reduce((s, i) => s + Number(i.amount) * (1 + Number(i.tax_rate) / 100), 0);
+
+  // 請求書が紐づいていないプロジェクトで payment_status='入金済' の budget 合計
+  const invoicedProjectIds = new Set(
+    _invoices.map(i => i.project_id).filter(Boolean)
+  );
+  const invoicedTitles = new Set(
+    _invoices.map(i => i.project_name).filter(Boolean)
+  );
+  const projectBudgetPaid = (_projects || [])
+    .filter(p => p.payment_status === '入金済'
+      && !invoicedProjectIds.has(p.id)
+      && !invoicedTitles.has(p.title))
+    .reduce((s, p) => s + Number(p.budget || 0), 0);
+
+  const paid = invoicePaid + projectBudgetPaid;
   const exp = _expenses.reduce((s, e) => s + Number(e.amount), 0);
   setText('fi-paid',     '¥' + fmt(Math.round(paid)));
   setText('fi-expenses', '¥' + fmt(exp));

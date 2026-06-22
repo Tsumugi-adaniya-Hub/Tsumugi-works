@@ -46,17 +46,29 @@ app.get('/api/dashboard', async (req, res) => {
   try {
     const [clients, projects, invoices, expenses] = await Promise.all([
       supabase.from('clients').select('id', { count: 'exact' }),
-      supabase.from('projects').select('id, status', { count: 'exact' }),
-      supabase.from('invoices').select('amount, tax_rate, status'),
+      supabase.from('projects').select('id, status, payment_status, budget, title'),
+      supabase.from('invoices').select('amount, tax_rate, status, project_id, project_name'),
       supabase.from('expenses').select('amount'),
     ]);
 
     const activeProjects  = (projects.data || []).filter(p => p.status === 'active').length;
     const pendingProjects = (projects.data || []).filter(p => p.status === 'pending').length;
 
-    const paidRevenue = (invoices.data || [])
+    // 請求書の入金済合計
+    const invoicePaid = (invoices.data || [])
       .filter(i => i.status === 'paid')
       .reduce((sum, i) => sum + Number(i.amount) * (1 + Number(i.tax_rate) / 100), 0);
+
+    // 請求書が紐づいていないプロジェクトで payment_status='入金済' の budget 合計
+    const invoicedProjectIds = new Set((invoices.data || []).map(i => i.project_id).filter(Boolean));
+    const invoicedTitles     = new Set((invoices.data || []).map(i => i.project_name).filter(Boolean));
+    const projectBudgetPaid  = (projects.data || [])
+      .filter(p => p.payment_status === '入金済'
+        && !invoicedProjectIds.has(p.id)
+        && !invoicedTitles.has(p.title))
+      .reduce((sum, p) => sum + Number(p.budget || 0), 0);
+
+    const paidRevenue = invoicePaid + projectBudgetPaid;
 
     const unpaidRevenue = (invoices.data || [])
       .filter(i => ['sent', 'overdue'].includes(i.status))
@@ -67,7 +79,7 @@ app.get('/api/dashboard', async (req, res) => {
 
     res.json({
       clients: clients.count ?? 0,
-      totalProjects: projects.count ?? 0,
+      totalProjects: (projects.data || []).length,
       activeProjects,
       pendingProjects,
       paidRevenue:    Math.round(paidRevenue),

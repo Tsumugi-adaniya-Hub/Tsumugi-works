@@ -44,35 +44,30 @@ app.use(express.static('public'));
 // ============================================================
 app.get('/api/dashboard', async (req, res) => {
   try {
-    const [clients, projects, invoices, expenses] = await Promise.all([
+    const [clients, projects, invoices, quotes, expenses] = await Promise.all([
       supabase.from('clients').select('id', { count: 'exact' }),
       supabase.from('projects').select('id, status, payment_status, budget, title'),
-      supabase.from('invoices').select('amount, tax_rate, status, project_id, project_name'),
+      supabase.from('invoices').select('amount, tax_rate, project_id, project_name'),
+      supabase.from('quotes').select('amount, tax_rate, project_id, project_name'),
       supabase.from('expenses').select('amount'),
     ]);
 
     const activeProjects  = (projects.data || []).filter(p => p.status === 'active').length;
     const pendingProjects = (projects.data || []).filter(p => p.status === 'pending').length;
 
-    // 請求書の入金済合計
-    const invoicePaid = (invoices.data || [])
-      .filter(i => i.status === 'paid')
-      .reduce((sum, i) => sum + Number(i.amount) * (1 + Number(i.tax_rate) / 100), 0);
+    // 案件の実効金額（請求書 > 見積書 > budget の優先順）
+    function effectiveAmount(p) {
+      const inv = (invoices.data || []).find(i => i.project_id === p.id || (i.project_name && i.project_name === p.title));
+      if (inv) return Number(inv.amount) * (1 + Number(inv.tax_rate) / 100);
+      const q = (quotes.data || []).find(q => q.project_id === p.id || (q.project_name && q.project_name === p.title));
+      if (q) return Number(q.amount) * (1 + Number(q.tax_rate) / 100);
+      return Number(p.budget || 0);
+    }
 
-    // 請求書が紐づいていないプロジェクトで payment_status='入金済' の budget 合計
-    const invoicedProjectIds = new Set((invoices.data || []).map(i => i.project_id).filter(Boolean));
-    const invoicedTitles     = new Set((invoices.data || []).map(i => i.project_name).filter(Boolean));
-    const projectBudgetPaid  = (projects.data || [])
-      .filter(p => p.payment_status === '入金済'
-        && !invoicedProjectIds.has(p.id)
-        && !invoicedTitles.has(p.title))
-      .reduce((sum, p) => sum + Number(p.budget || 0), 0);
-
-    const paidRevenue = invoicePaid + projectBudgetPaid;
-
-    const unpaidRevenue = (invoices.data || [])
-      .filter(i => ['sent', 'overdue'].includes(i.status))
-      .reduce((sum, i) => sum + Number(i.amount) * (1 + Number(i.tax_rate) / 100), 0);
+    // 入金済売上 = payment_status='入金済' の案件の実効金額合計
+    const paidRevenue = (projects.data || [])
+      .filter(p => p.payment_status === '入金済')
+      .reduce((sum, p) => sum + effectiveAmount(p), 0);
 
     const totalExpenses = (expenses.data || [])
       .reduce((sum, e) => sum + Number(e.amount), 0);
@@ -83,7 +78,6 @@ app.get('/api/dashboard', async (req, res) => {
       activeProjects,
       pendingProjects,
       paidRevenue:    Math.round(paidRevenue),
-      unpaidRevenue:  Math.round(unpaidRevenue),
       totalExpenses,
       profit: Math.round(paidRevenue) - totalExpenses,
     });

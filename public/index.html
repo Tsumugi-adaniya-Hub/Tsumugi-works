@@ -349,24 +349,31 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="project-id">
+      <input type="hidden" id="project-client-id">
       <div class="form-group"><label>案件名 *</label><input type="text" id="project-title" placeholder="例：ウェブサイトリニューアル"></div>
       <div class="form-row">
-        <div class="form-group">
-          <label>顧客名</label>
-          <input type="text" id="project-client-name" list="client-datalist"
-                 autocomplete="off" placeholder="例：山田商店（フリー入力）">
-          <datalist id="client-datalist"></datalist>
-          <label class="save-client-label">
-            <input type="checkbox" id="project-save-client">
-            この顧客名を保存する
-          </label>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>問い合わせ日</label><input type="date" id="project-inquiry-date"></div>
+        <div class="form-group"><label>受注日</label><input type="date" id="project-inquiry-date"></div>
         <div class="form-group"><label>納品予定日</label><input type="date" id="project-delivery-date"></div>
       </div>
       <div class="form-row">
+        <div class="form-group"><label>姓</label><input type="text" id="project-last-name" placeholder="山田"></div>
+        <div class="form-group"><label>名</label><input type="text" id="project-first-name" placeholder="太郎"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>姓（カナ）</label><input type="text" id="project-last-name-kana" placeholder="ヤマダ"></div>
+        <div class="form-group"><label>名（カナ）</label><input type="text" id="project-first-name-kana" placeholder="タロウ"></div>
+      </div>
+      <div class="form-group"><label>会社名</label><input type="text" id="project-company" placeholder="株式会社〇〇"></div>
+      <div class="form-row">
+        <div class="form-group"><label>メール</label><input type="email" id="project-email" placeholder="example@mail.com"></div>
+        <div class="form-group"><label>電話</label><input type="tel" id="project-phone" placeholder="090-0000-0000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>郵便番号</label><input type="text" id="project-postal-code" placeholder="000-0000"></div>
+        <div class="form-group"><label>住所（都道府県から）</label><input type="text" id="project-address" placeholder="東京都〇〇区…"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>金額（円）</label><input type="number" id="project-budget" placeholder="0"></div>
         <div class="form-group">
           <label>進行度</label>
           <select id="project-progress">
@@ -381,9 +388,8 @@
             <option value="納品完了">納品完了</option>
           </select>
         </div>
-        <div class="form-group"><label>金額（円）</label><input type="number" id="project-budget" placeholder="0"></div>
       </div>
-      <div class="form-group"><label>詳細</label><textarea id="project-description"></textarea></div>
+      <div class="form-group"><label>備考</label><textarea id="project-description" placeholder="備考・メモ"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-project')">キャンセル</button>

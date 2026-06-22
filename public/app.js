@@ -527,15 +527,12 @@ async function showClientCard(clientId) {
 }
 
 async function openProjectModal(id) {
-  clearForm('modal-project', ['project-id','project-title','project-budget','project-inquiry-date','project-delivery-date','project-description']);
-  document.getElementById('project-client-name').value = '';
-  document.getElementById('project-save-client').checked = false;
+  // フォームリセット
+  ['project-id','project-client-id','project-title','project-budget','project-inquiry-date','project-delivery-date','project-description',
+   'project-last-name','project-first-name','project-last-name-kana','project-first-name-kana',
+   'project-company','project-email','project-phone','project-postal-code','project-address']
+    .forEach(elId => { const el = document.getElementById(elId); if (el) el.value = ''; });
   document.getElementById('project-progress').value = '相談のみ';
-
-  // datalist に保存済み顧客名 + Supabase clients をセット
-  const saved = await fetchJSON('/api/client-names').catch(() => []);
-  const combined = [...new Set([...saved, ..._clients.map(c => c.name)])].sort((a, b) => a.localeCompare(b, 'ja'));
-  document.getElementById('client-datalist').innerHTML = combined.map(n => `<option value="${esc(n)}">`).join('');
 
   // 今日の日付をデフォルト
   const today = new Date().toISOString().split('T')[0];
@@ -546,14 +543,27 @@ async function openProjectModal(id) {
     if (!p) return;
     document.getElementById('modal-project-title').textContent = '案件を編集';
     document.getElementById('project-id').value = p.id;
-    document.getElementById('project-title').value = p.title;
-    const clientName = _clients.find(c => c.id === p.client_id)?.name ?? '';
-    document.getElementById('project-client-name').value = clientName;
+    document.getElementById('project-title').value = p.title ?? '';
     document.getElementById('project-progress').value = p.progress ?? '相談のみ';
-    document.getElementById('project-inquiry-date').value = p.start_date ?? today;
+    document.getElementById('project-inquiry-date').value  = p.start_date ?? today;
     document.getElementById('project-delivery-date').value = p.end_date ?? '';
-    document.getElementById('project-budget').value = p.budget ?? '';
-    document.getElementById('project-description').value = p.description ?? '';
+    document.getElementById('project-budget').value        = p.budget ?? '';
+    document.getElementById('project-description').value   = p.description ?? '';
+
+    // 紐づく顧客情報を展開
+    const c = _clients.find(c => c.id === p.client_id);
+    if (c) {
+      document.getElementById('project-client-id').value = c.id;
+      document.getElementById('project-last-name').value        = c.last_name        ?? '';
+      document.getElementById('project-first-name').value       = c.first_name       ?? '';
+      document.getElementById('project-last-name-kana').value   = c.last_name_kana   ?? '';
+      document.getElementById('project-first-name-kana').value  = c.first_name_kana  ?? '';
+      document.getElementById('project-company').value          = c.company          ?? '';
+      document.getElementById('project-email').value            = c.email            ?? '';
+      document.getElementById('project-phone').value            = c.phone            ?? '';
+      document.getElementById('project-postal-code').value      = c.postal_code      ?? '';
+      document.getElementById('project-address').value          = c.address          ?? '';
+    }
   } else {
     document.getElementById('modal-project-title').textContent = '案件を追加';
   }
@@ -561,48 +571,52 @@ async function openProjectModal(id) {
 }
 
 async function saveProject() {
-  const id              = document.getElementById('project-id').value;
-  const clientNameInput = document.getElementById('project-client-name').value.trim();
-  const saveClientFlag  = document.getElementById('project-save-client').checked;
-  const progress        = document.getElementById('project-progress').value;
+  const id       = document.getElementById('project-id').value;
+  const clientId = document.getElementById('project-client-id').value;
+  const title    = document.getElementById('project-title').value.trim();
+  if (!title) return toast('案件名を入力してください');
 
-  // 顧客名 → client_id を解決
-  let clientId = null;
-  if (clientNameInput) {
-    const existing = _clients.find(c => c.name === clientNameInput);
-    if (existing) {
-      clientId = existing.id;
-    } else if (saveClientFlag) {
-      const newClient = await apiFetch('/api/clients', 'POST', { name: clientNameInput });
-      if (!newClient.error) {
-        clientId = newClient.id;
-        _clients.push(newClient);
-      }
-    }
-    if (saveClientFlag) {
-      await fetch('/api/client-names', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: clientNameInput }),
-      });
+  const lastName      = document.getElementById('project-last-name').value.trim();
+  const firstName     = document.getElementById('project-first-name').value.trim();
+  const lastNameKana  = document.getElementById('project-last-name-kana').value.trim();
+  const firstNameKana = document.getElementById('project-first-name-kana').value.trim();
+  const company       = document.getElementById('project-company').value.trim();
+  const email         = document.getElementById('project-email').value.trim();
+  const phone         = document.getElementById('project-phone').value.trim();
+  const postalCode    = document.getElementById('project-postal-code').value.trim();
+  const address       = document.getElementById('project-address').value.trim();
+
+  // 顧客情報があれば保存/更新
+  let resolvedClientId = clientId || null;
+  const hasClientData  = lastName || firstName || company || email || phone;
+  if (hasClientData) {
+    const clientPayload = {
+      last_name: lastName, first_name: firstName,
+      last_name_kana: lastNameKana, first_name_kana: firstNameKana,
+      company, email, phone, postal_code: postalCode, address,
+    };
+    if (clientId) {
+      // 既存顧客を更新
+      const r = await apiFetch(`/api/clients/${clientId}`, 'PUT', clientPayload);
+      if (!r.error) { const c = _clients.find(c => c.id === clientId); if (c) Object.assign(c, r); }
+    } else {
+      // 新規顧客を作成
+      const r = await apiFetch('/api/clients', 'POST', clientPayload);
+      if (!r.error) { resolvedClientId = r.id; _clients.push(r); }
     }
   }
 
-  const title        = document.getElementById('project-title').value.trim();
-  const inquiryDate  = document.getElementById('project-inquiry-date').value || null;
-  const deliveryDate = document.getElementById('project-delivery-date').value || null;
-
   const body = {
     title,
-    client_id:      clientId,
-    progress:       progress || '相談のみ',
-    payment_status: '未入金',
-    start_date:     inquiryDate,
-    end_date:       deliveryDate,
+    client_id:      resolvedClientId,
+    progress:       document.getElementById('project-progress').value || '相談のみ',
+    payment_status: id ? undefined : '未入金',   // 新規のみデフォルト設定
+    start_date:     document.getElementById('project-inquiry-date').value || null,
+    end_date:       document.getElementById('project-delivery-date').value || null,
     budget:         Number(document.getElementById('project-budget').value) || 0,
     description:    document.getElementById('project-description').value.trim() || null,
   };
-  if (!body.title) return toast('案件名を入力してください');
+  if (!id) body.payment_status = '未入金';
 
   const url    = id ? `/api/projects/${id}` : '/api/projects';
   const method = id ? 'PUT' : 'POST';
@@ -641,26 +655,22 @@ async function loadFinance() {
   renderExpensesTable();
 }
 
+// 案件の実効金額（請求書 > 見積書 > budget の優先順）
+function projectEffectiveAmount(p) {
+  const inv = (_invoices || []).find(i => i.project_id === p.id || (i.project_name && i.project_name === p.title));
+  if (inv) return Number(inv.amount) * (1 + Number(inv.tax_rate) / 100);
+  const q = (_quotes || []).find(q => q.project_id === p.id || (q.project_name && q.project_name === p.title));
+  if (q) return Number(q.amount) * (1 + Number(q.tax_rate) / 100);
+  return Number(p.budget || 0);
+}
+
 function updateFinanceStats() {
-  // 請求書の入金済合計
-  const invoicePaid = _invoices.filter(i => i.status === 'paid')
-    .reduce((s, i) => s + Number(i.amount) * (1 + Number(i.tax_rate) / 100), 0);
+  // 入金済売上 = 受注一覧で payment_status='入金済' の案件の実効金額合計
+  const paid = (_projects || [])
+    .filter(p => p.payment_status === '入金済')
+    .reduce((s, p) => s + projectEffectiveAmount(p), 0);
 
-  // 請求書が紐づいていないプロジェクトで payment_status='入金済' の budget 合計
-  const invoicedProjectIds = new Set(
-    _invoices.map(i => i.project_id).filter(Boolean)
-  );
-  const invoicedTitles = new Set(
-    _invoices.map(i => i.project_name).filter(Boolean)
-  );
-  const projectBudgetPaid = (_projects || [])
-    .filter(p => p.payment_status === '入金済'
-      && !invoicedProjectIds.has(p.id)
-      && !invoicedTitles.has(p.title))
-    .reduce((s, p) => s + Number(p.budget || 0), 0);
-
-  const paid = invoicePaid + projectBudgetPaid;
-  const exp = _expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const exp = (_expenses || []).reduce((s, e) => s + Number(e.amount), 0);
   setText('fi-paid',     '¥' + fmt(Math.round(paid)));
   setText('fi-expenses', '¥' + fmt(exp));
   setText('fi-profit',   '¥' + fmt(Math.round(paid) - exp));

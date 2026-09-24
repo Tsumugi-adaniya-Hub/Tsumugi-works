@@ -52,11 +52,12 @@ website/
 
 ```css
 :root {
-  --color-main: #4f7f7a;   /* メイン色（見出し・ボタン・フッター） */
-  --color-accent: #b98b5e; /* アクセント（見出し下の線） */
-  --color-text: #333333;   /* 文字色 */
+  --color-main: #3f6f6a;   /* メイン色（見出し・ボタン・お問い合わせ背景・織り模様） */
+  --color-accent: #a8834f; /* 糸の色（織り模様の縁・ご依頼の流れの線） */
+  --color-text: #2a3432;   /* 文字色（フッター背景にも使用） */
   --color-bg: #ffffff;     /* 背景色 */
-  --color-bg-alt: #f3f6f5; /* 交互の背景（メイン色をごく薄くした色） */
+  --color-bg-alt: #eef3f2; /* 交互の背景（メイン色をごく薄くした色） */
+  --color-line: #d5dfdd;   /* 罫線 */
 }
 ```
 

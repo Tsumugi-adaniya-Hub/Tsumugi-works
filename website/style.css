@@ -67,7 +67,7 @@ h1, h2, h3 {
   color: #fff;
   font-weight: 700;
   text-decoration: none;
-  border-radius: 999px;
+  border-radius: 4px;
 }
 
 .btn:hover,
@@ -151,18 +151,27 @@ h1, h2, h3 {
 
 /* ===== 2. ファーストビュー ===== */
 .hero {
-  padding: 80px 0;
-  text-align: center;
+  padding: 72px 0 80px;
   background: var(--color-bg-alt);
+  border-bottom: 4px solid var(--color-main);
+}
+
+.hero-label {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--color-accent);
 }
 
 .hero-title {
-  font-size: 26px;
+  font-size: 28px;
   color: var(--color-main);
 }
 
 .hero-sub {
   margin: 20px 0 36px;
+  max-width: 36em;
 }
 
 /* ===== セクション共通 ===== */
@@ -176,30 +185,40 @@ h1, h2, h3 {
 
 .section-title {
   font-size: 24px;
-  text-align: center;
   margin-bottom: 40px;
+  padding-left: 16px;
+  border-left: 4px solid var(--color-main);
 }
 
-.section-title::after {
-  content: "";
+.section-en {
   display: block;
-  width: 40px;
-  height: 3px;
-  margin: 12px auto 0;
-  background: var(--color-accent);
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--color-accent);
 }
 
 /* ===== 3. サービス / 4. 制作実績（カード） ===== */
 .cards {
   display: grid;
   gap: 24px;
+  counter-reset: card;
 }
 
 .card {
-  padding: 28px 24px;
+  padding: 24px 24px 28px;
   background: var(--color-bg);
   border: 1px solid #e0e6e5;
-  border-radius: 8px;
+  border-top: 3px solid var(--color-main);
+}
+
+.card::before {
+  counter-increment: card;
+  content: counter(card, decimal-leading-zero);
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-accent);
 }
 
 .card h3 {
@@ -221,14 +240,28 @@ h1, h2, h3 {
   gap: 12px;
 }
 
+.flow {
+  gap: 0;
+}
+
 .flow li {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 20px;
-  background: var(--color-bg-alt);
-  border-radius: 8px;
+  padding: 12px 0;
   font-weight: 700;
+}
+
+/* 番号どうしをつなぐ線 */
+.flow li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 48px;
+  bottom: -12px;
+  width: 2px;
+  background: #cfdad8;
 }
 
 .flow-num {
@@ -241,13 +274,15 @@ h1, h2, h3 {
   border-radius: 50%;
   background: var(--color-main);
   color: #fff;
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== 6. 料金 / 7. プロフィール（定義リスト） ===== */
 .price,
 .profile {
-  max-width: 720px;
-  margin: 0 auto;
+  max-width: 760px;
+  margin: 0;
 }
 
 .price-row,
@@ -268,8 +303,11 @@ h1, h2, h3 {
 }
 
 /* ===== 8. お問い合わせ ===== */
-.contact {
-  text-align: center;
+.contact-box {
+  padding: 32px 24px;
+  background: var(--color-bg);
+  border: 1px solid #e0e6e5;
+  border-left: 4px solid var(--color-accent);
 }
 
 .contact-note {
@@ -283,10 +321,15 @@ h1, h2, h3 {
 
 /* ===== 9. フッター ===== */
 .footer {
-  padding: 32px 20px;
-  text-align: center;
+  padding: 32px 0;
   background: var(--color-main);
   color: #fff;
+}
+
+.footer-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
 .footer p {
@@ -300,11 +343,11 @@ h1, h2, h3 {
   }
 
   .hero {
-    padding: 120px 0;
+    padding: 112px 0 120px;
   }
 
   .hero-title {
-    font-size: 36px;
+    font-size: 40px;
   }
 
   .section {
@@ -326,6 +369,20 @@ h1, h2, h3 {
   .flow li {
     flex-direction: column;
     text-align: center;
+  }
+
+  /* PCでは横線でつなぐ */
+  .flow li:not(:last-child)::after {
+    left: 50%;
+    right: -50%;
+    top: 30px;
+    bottom: auto;
+    width: auto;
+    height: 2px;
+  }
+
+  .contact-box {
+    padding: 40px 48px;
   }
 
   .price-row,

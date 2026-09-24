@@ -48,6 +48,7 @@
     <!-- 2. ファーストビュー -->
     <section class="hero">
       <div class="container">
+        <p class="hero-label">Tsumugi Works</p>
         <h1 class="hero-title"><span class="todo">【TODO: キャッチコピー】</span></h1>
         <p class="hero-sub"><span class="todo">【TODO: サブコピー】</span></p>
         <a href="#contact" class="btn">お問い合わせ</a>
@@ -57,7 +58,7 @@
     <!-- 3. サービス -->
     <section id="service" class="section">
       <div class="container">
-        <h2 class="section-title">サービス</h2>
+        <h2 class="section-title"><span class="section-en" aria-hidden="true">Service</span>サービス</h2>
         <div class="cards">
           <article class="card">
             <h3>事務代行</h3>
@@ -78,7 +79,7 @@
     <!-- 4. 制作実績（実績が無い間は、このsectionと nav の .nav-works に hidden を付けて非表示） -->
     <section id="works" class="section section-alt">
       <div class="container">
-        <h2 class="section-title">制作実績</h2>
+        <h2 class="section-title"><span class="section-en" aria-hidden="true">Works</span>制作実績</h2>
         <div class="cards">
           <!-- 実績1件ごとに article.card を追加 -->
           <article class="card">
@@ -92,7 +93,7 @@
     <!-- 5. ご依頼の流れ -->
     <section id="flow" class="section">
       <div class="container">
-        <h2 class="section-title">ご依頼の流れ</h2>
+        <h2 class="section-title"><span class="section-en" aria-hidden="true">Flow</span>ご依頼の流れ</h2>
         <ol class="flow">
           <li><span class="flow-num">1</span>ヒアリング</li>
           <li><span class="flow-num">2</span>お見積り</li>
@@ -106,7 +107,7 @@
     <!-- 6. 料金の目安 -->
     <section id="price" class="section section-alt">
       <div class="container">
-        <h2 class="section-title">料金の目安</h2>
+        <h2 class="section-title"><span class="section-en" aria-hidden="true">Price</span>料金の目安</h2>
         <dl class="price">
           <div class="price-row">
             <dt>事務代行</dt>
@@ -127,7 +128,7 @@
     <!-- 7. プロフィール -->
     <section id="profile" class="section">
       <div class="container">
-        <h2 class="section-title">プロフィール</h2>
+        <h2 class="section-title"><span class="section-en" aria-hidden="true">Profile</span>プロフィール</h2>
         <dl class="profile">
           <div class="profile-row">
             <dt>屋号</dt>
@@ -147,12 +148,14 @@
 
     <!-- 8. お問い合わせ -->
     <section id="contact" class="section section-alt">
-      <div class="container contact">
-        <h2 class="section-title">お問い合わせ</h2>
+      <div class="container">
+        <h2 class="section-title"><span class="section-en" aria-hidden="true">Contact</span>お問い合わせ</h2>
+        <div class="contact-box">
         <!-- href="#" を GoogleフォームURL に差し替え -->
         <a href="#" class="btn" target="_blank" rel="noopener">お問い合わせフォーム</a>
         <p class="contact-note"><span class="todo">【TODO: GoogleフォームURL】</span></p>
         <p class="contact-mail">メール：<span class="todo">【TODO: メールアドレス】</span></p>
+        </div>
       </div>
     </section>
 
@@ -160,8 +163,10 @@
 
   <!-- 9. フッター -->
   <footer class="footer">
-    <p>つむぎワークス（Tsumugi Works）</p>
-    <p><small>&copy; 2026 Tsumugi Works</small></p>
+    <div class="footer-inner">
+      <p>つむぎワークス（Tsumugi Works）</p>
+      <p><small>&copy; 2026 Tsumugi Works</small></p>
+    </div>
   </footer>
 
   <script>

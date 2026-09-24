@@ -1,0 +1,376 @@
+/* ===== 配色（ここを変更すれば全体に反映） ===== */
+:root {
+  --color-main: #4f7f7a;   /* くすみ青緑 */
+  --color-accent: #b98b5e; /* くすみブラウン */
+  --color-text: #333333;
+  --color-bg: #ffffff;
+  --color-bg-alt: #f3f6f5; /* 交互の背景（main色を薄くした色） */
+}
+
+/* ===== 基本 ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 72px; /* 固定ヘッダー分 */
+}
+
+body {
+  margin: 0;
+  font-family: "Noto Sans JP", sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--color-text);
+  background: var(--color-bg);
+  overflow-wrap: anywhere;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--color-main);
+}
+
+h1, h2, h3 {
+  line-height: 1.5;
+  margin: 0;
+}
+
+.container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* TODO箇所の目印 */
+.todo {
+  background: #fff3b0;
+  color: #7a5a00;
+  padding: 0 4px;
+}
+
+/* ===== ボタン ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 32px;
+  background: var(--color-main);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 999px;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  opacity: 0.85;
+}
+
+/* ===== 1. ヘッダー ===== */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px;
+  min-height: 64px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-main);
+  text-decoration: none;
+}
+
+.menu-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.menu-btn span {
+  display: block;
+  height: 2px;
+  background: var(--color-text);
+}
+
+.nav {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-bg);
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.nav.is-open {
+  display: block;
+}
+
+.nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 8px 20px 16px;
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid #eee;
+}
+
+/* ===== 2. ファーストビュー ===== */
+.hero {
+  padding: 80px 0;
+  text-align: center;
+  background: var(--color-bg-alt);
+}
+
+.hero-title {
+  font-size: 26px;
+  color: var(--color-main);
+}
+
+.hero-sub {
+  margin: 20px 0 36px;
+}
+
+/* ===== セクション共通 ===== */
+.section {
+  padding: 72px 0;
+}
+
+.section-alt {
+  background: var(--color-bg-alt);
+}
+
+.section-title {
+  font-size: 24px;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.section-title::after {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin: 12px auto 0;
+  background: var(--color-accent);
+}
+
+/* ===== 3. サービス / 4. 制作実績（カード） ===== */
+.cards {
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  padding: 28px 24px;
+  background: var(--color-bg);
+  border: 1px solid #e0e6e5;
+  border-radius: 8px;
+}
+
+.card h3 {
+  font-size: 19px;
+  color: var(--color-main);
+  margin-bottom: 12px;
+}
+
+.card p {
+  margin: 0;
+}
+
+/* ===== 5. ご依頼の流れ ===== */
+.flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.flow li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--color-bg-alt);
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.flow-num {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-main);
+  color: #fff;
+}
+
+/* ===== 6. 料金 / 7. プロフィール（定義リスト） ===== */
+.price,
+.profile {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.price-row,
+.profile-row {
+  padding: 16px 0;
+  border-bottom: 1px solid #dde3e2;
+}
+
+.price dt,
+.profile dt {
+  font-weight: 700;
+  color: var(--color-main);
+}
+
+.price dd,
+.profile dd {
+  margin: 4px 0 0;
+}
+
+/* ===== 8. お問い合わせ ===== */
+.contact {
+  text-align: center;
+}
+
+.contact-note {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.contact-mail {
+  margin: 24px 0 0;
+}
+
+/* ===== 9. フッター ===== */
+.footer {
+  padding: 32px 20px;
+  text-align: center;
+  background: var(--color-main);
+  color: #fff;
+}
+
+.footer p {
+  margin: 0;
+}
+
+/* ===== PC幅 ===== */
+@media (min-width: 768px) {
+  body {
+    font-size: 17px;
+  }
+
+  .hero {
+    padding: 120px 0;
+  }
+
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .section {
+    padding: 96px 0;
+  }
+
+  .section-title {
+    font-size: 28px;
+  }
+
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .flow {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .flow li {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .price-row,
+  .profile-row {
+    display: flex;
+    gap: 24px;
+  }
+
+  .price dt,
+  .profile dt {
+    flex: 0 0 160px;
+  }
+
+  .price dd,
+  .profile dd {
+    margin: 0;
+  }
+}
+
+/* ===== PC幅（ナビを横並びに） ===== */
+@media (min-width: 960px) {
+  .menu-btn {
+    display: none;
+  }
+
+  .nav,
+  .nav.is-open {
+    display: block;
+    position: static;
+    border: 0;
+  }
+
+  .nav ul {
+    display: flex;
+    gap: 24px;
+    padding: 0;
+  }
+
+  .nav a {
+    border: 0;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .nav a:hover {
+    color: var(--color-main);
+  }
+}

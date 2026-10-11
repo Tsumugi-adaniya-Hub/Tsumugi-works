@@ -1,10 +1,10 @@
 /* ===== 配色（ここを変更すれば全体に反映） ===== */
 :root {
   --color-main: #5f7381;   /* ブルーグレー（見出し・ボタン・お問い合わせ背景） */
-  --color-accent: #c4a280; /* ベージュ（糸の色：織り模様・流れの線） */
+  --color-accent: #c4a280; /* ベージュ（流れの線・キーボード操作時の枠） */
   --color-text: #3a3f44;   /* チャコール */
   --color-bg: #f8f6f1;     /* 名刺と同じオフホワイト */
-  --color-bg-alt: #edf0f2; /* 交互の背景（main色をごく薄くした色） */
+  --color-bg-alt: #edf0f2; /* 白ボタンのホバー色 */
   --color-line: #dcdfe2;   /* 罫線 */
 }
 
@@ -181,22 +181,17 @@ p {
 .hero {
   position: relative;
   padding: 72px 0 104px;
-  background: var(--color-bg-alt);
 }
 
-/* 紬の織り模様（ファーストビュー下端の帯） */
+/* ファーストビュー下端のブルーグレーの帯 */
 .hero::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 28px;
-  background-color: var(--color-main);
-  background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 4px);
-  border-top: 3px solid var(--color-accent);
+  height: 8px;
+  background: var(--color-main);
 }
 
 .hero-title {
@@ -214,8 +209,9 @@ p {
   padding: 72px 0;
 }
 
-.section-alt {
-  background: var(--color-bg-alt);
+/* セクションの区切りは罫線のみ（背景色は全体で統一） */
+.section + .section {
+  border-top: 1px solid var(--color-line);
 }
 
 .section-title {
@@ -352,7 +348,7 @@ p {
   }
 
   .hero::after {
-    height: 40px;
+    height: 10px;
   }
 
   .hero-title {

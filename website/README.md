@@ -32,10 +32,9 @@ website/
 
 ```html
 <li class="nav-works" hidden>…</li>
-<section id="works" class="section section-alt" hidden>
+<section id="works" class="section" hidden>
 ```
 
-※ 非表示にすると背景色の交互が崩れるため、気になる場合は下のセクションの `section-alt` を付け替えてください。
 
 ### ドメイン確定前後
 
@@ -52,11 +51,11 @@ website/
 
 ```css
 :root {
-  --color-main: #5f7381;   /* ブルーグレー（見出し・ボタン・お問い合わせ背景・織り模様） */
-  --color-accent: #c4a280; /* ベージュ（糸の色：織り模様の縁・ご依頼の流れの線） */
+  --color-main: #5f7381;   /* ブルーグレー（見出し・ボタン・お問い合わせ背景・ファーストビュー下の帯） */
+  --color-accent: #c4a280; /* ベージュ（ご依頼の流れの線・キーボード操作時の枠） */
   --color-text: #3a3f44;   /* 文字色（フッター背景にも使用） */
   --color-bg: #f8f6f1;     /* 背景色（名刺と同じオフホワイト） */
-  --color-bg-alt: #edf0f2; /* 交互の背景（メイン色をごく薄くした色） */
+  --color-bg-alt: #edf0f2; /* 白ボタンのホバー色 */
   --color-line: #dcdfe2;   /* 罫線 */
 }
 ```

@@ -1,8 +1,8 @@
 /* ===== 配色（ここを変更すれば全体に反映） ===== */
 :root {
-  --color-main: #5f7381;   /* ブルーグレー（見出し・ボタン・お問い合わせ背景） */
+  --color-main: #5f7381;   /* ブルーグレー（大きな英字・見出しの丸・ボタン・お問い合わせ背景） */
   --color-accent: #c4a280; /* ベージュ（流れの線・キーボード操作時の枠） */
-  --color-text: #3a3f44;   /* チャコール */
+  --color-text: #2f3438;   /* チャコール */
   --color-bg: #f8f6f1;     /* 名刺と同じオフホワイト */
   --color-bg-alt: #edf0f2; /* 白ボタンのホバー色 */
   --color-line: #dcdfe2;   /* 罫線 */
@@ -62,7 +62,7 @@ p {
 }
 
 .container {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -86,7 +86,7 @@ p {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-decoration: none;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 .btn:hover {
@@ -108,24 +108,23 @@ p {
   top: 0;
   z-index: 10;
   background: var(--color-bg);
-  border-bottom: 1px solid var(--color-line);
 }
 
 .header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
-  min-height: 64px;
+  min-height: 72px;
 }
 
 .logo {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--color-main);
+  color: var(--color-text);
   text-decoration: none;
 }
 
@@ -173,75 +172,91 @@ p {
   align-items: center;
   min-height: 48px;
   color: var(--color-text);
+  font-weight: 700;
   text-decoration: none;
   border-bottom: 1px solid var(--color-line);
 }
 
 /* ===== 2. ファーストビュー ===== */
 .hero {
-  position: relative;
-  padding: 72px 0 104px;
-}
-
-/* ファーストビュー下端のブルーグレーの帯 */
-.hero::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 8px;
-  background: var(--color-main);
+  padding: 96px 0 64px;
 }
 
 .hero-title {
-  font-size: 28px;
-  color: var(--color-main);
+  font-size: 22px;
 }
 
 .hero-sub {
-  max-width: 34em;
-  margin: 20px 0 36px;
+  max-width: 36em;
+  margin: 16px 0 32px;
+  font-size: 15px;
+}
+
+/* 屋号を大きな細い英字で（装飾のため読み上げ対象外） */
+.hero-display {
+  margin-top: 64px;
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 300;
+  font-size: clamp(56px, 13vw, 168px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-main);
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* ===== セクション共通 ===== */
 .section {
-  padding: 72px 0;
+  padding: 64px 0;
 }
 
-/* セクションの区切りは罫線のみ（背景色は全体で統一） */
-.section + .section {
-  border-top: 1px solid var(--color-line);
+/* 見出し行：左に「● 日本語」、右に英字、下に罫線 */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-line);
 }
 
 .section-title {
-  font-size: 22px;
-  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 16px;
 }
 
-/* ===== 3. サービス / 4. 制作実績（カード） ===== */
-.cards {
-  display: grid;
-  gap: 20px;
+.section-title::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-main);
 }
 
-.card {
-  padding: 24px;
-  background: #fff;
-  border: 1px solid var(--color-line);
-  border-radius: 6px;
-}
-
-.card h3 {
-  font-size: 19px;
+.section-en {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 17px;
   color: var(--color-main);
+}
+
+/* ===== 3. サービス / 4. 制作実績（罫線で区切った行） ===== */
+.row {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.row-title {
+  font-size: 21px;
   margin-bottom: 12px;
 }
 
-/* ===== 5. ご依頼の流れ（金茶の糸でつなぐ） ===== */
+/* ===== 5. ご依頼の流れ（ベージュの糸でつなぐ） ===== */
 .flow {
   list-style: none;
-  margin: 0;
+  margin: 24px 0 0;
   padding: 0;
   display: grid;
 }
@@ -282,21 +297,18 @@ p {
 /* ===== 6. 料金 / 7. プロフィール（定義リスト） ===== */
 .price,
 .profile {
-  max-width: 720px;
   margin: 0;
-  border-top: 1px solid var(--color-line);
 }
 
 .price-row,
 .profile-row {
-  padding: 18px 0;
+  padding: 20px 0;
   border-bottom: 1px solid var(--color-line);
 }
 
 .price dt,
 .profile dt {
   font-weight: 700;
-  color: var(--color-main);
 }
 
 .price dd,
@@ -310,7 +322,16 @@ p {
   color: #fff;
 }
 
-.section-contact .section-title {
+.section-contact .section-head {
+  border-color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 32px;
+}
+
+.section-contact .section-title::before {
+  background: #fff;
+}
+
+.section-contact .section-en {
   color: #fff;
 }
 
@@ -332,7 +353,7 @@ p {
 }
 
 .footer-inner {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -343,36 +364,48 @@ p {
     font-size: 17px;
   }
 
-  .hero {
-    padding: 112px 0 152px;
+  .container,
+  .header-inner,
+  .footer-inner {
+    padding: 0 48px;
   }
 
-  .hero::after {
-    height: 10px;
+  .hero {
+    padding: 160px 0 80px;
   }
 
   .hero-title {
-    font-size: 40px;
+    font-size: 30px;
+  }
+
+  .hero-display {
+    margin-top: 96px;
   }
 
   .section {
     padding: 96px 0;
   }
 
-  .section-title {
-    font-size: 28px;
+  .section-en {
+    font-size: 19px;
   }
 
-  .cards {
-    grid-template-columns: repeat(3, 1fr);
+  /* 行：左に名前、右に説明 */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    padding: 48px 0;
   }
 
-  .card h3 {
-    font-size: 21px;
+  .row-title {
+    font-size: 24px;
+    margin-bottom: 0;
   }
 
   /* 流れ：横一列、糸は横に通す */
   .flow {
+    margin-top: 48px;
     grid-template-columns: repeat(5, 1fr);
   }
 
@@ -392,13 +425,10 @@ p {
 
   .price-row,
   .profile-row {
-    display: flex;
-    gap: 24px;
-  }
-
-  .price dt,
-  .profile dt {
-    flex: 0 0 160px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    padding: 24px 0;
   }
 
   .price dd,
@@ -407,19 +437,8 @@ p {
   }
 }
 
-/* ===== PC幅 ===== */
+/* ===== PC幅（ナビを横並びに） ===== */
 @media (min-width: 960px) {
-  /* 見出しを左列、本文を右列に */
-  .section-grid {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 40px;
-  }
-
-  .section-title {
-    margin-bottom: 0;
-  }
-
   .menu-btn {
     display: none;
   }
@@ -433,7 +452,7 @@ p {
 
   .nav ul {
     display: flex;
-    gap: 24px;
+    gap: 28px;
     padding: 0;
   }
 

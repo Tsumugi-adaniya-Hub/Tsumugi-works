@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>つむぎワークス（Tsumugi Works）｜事務代行・Web制作・業務効率化</title>
+  <title>つむぎワークス（Tsumugi Works）｜事務代行・Webアプリ開発・Webサイト制作</title>
   <meta name="description" content="つむぎワークス（Tsumugi Works）の公式サイトです。事務代行、Webアプリ開発、Webサイト制作のご相談を承ります。">
 
   <!-- OGP：ドメイン確定前は og:url / og:image のURLを公開URLに合わせて変更 -->
@@ -18,7 +18,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -51,120 +51,127 @@
         <h1 class="hero-title">想いをつなぎ、仕事をかたちに。</h1>
         <p class="hero-sub"><span class="todo">【TODO: サブコピー】</span></p>
         <a href="#contact" class="btn">お問い合わせ</a>
+        <p class="hero-display" aria-hidden="true">Tsumugi Works</p>
       </div>
     </section>
 
     <!-- 3. サービス -->
     <section id="service" class="section">
-      <div class="container section-grid">
-        <h2 class="section-title">サービス</h2>
-        <div class="section-body">
-          <div class="cards">
-            <article class="card">
-              <h3>事務代行</h3>
-              <p><span class="todo">【TODO: 事務代行の説明】</span></p>
-            </article>
-            <article class="card">
-              <h3>Webアプリ開発</h3>
-              <p><span class="todo">【TODO: Webアプリ開発の説明（業務効率化につながる点も）】</span></p>
-            </article>
-            <article class="card">
-              <h3>Webサイト制作</h3>
-              <p><span class="todo">【TODO: Webサイト制作の説明】</span></p>
-            </article>
-          </div>
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title">サービス</h2>
+          <span class="section-en" aria-hidden="true">Services</span>
+        </div>
+        <div class="rows">
+          <article class="row">
+            <h3 class="row-title">事務代行</h3>
+            <p class="row-text"><span class="todo">【TODO: 事務代行の説明】</span></p>
+          </article>
+          <article class="row">
+            <h3 class="row-title">Webアプリ開発</h3>
+            <p class="row-text"><span class="todo">【TODO: Webアプリ開発の説明（業務効率化につながる点も）】</span></p>
+          </article>
+          <article class="row">
+            <h3 class="row-title">Webサイト制作</h3>
+            <p class="row-text"><span class="todo">【TODO: Webサイト制作の説明】</span></p>
+          </article>
         </div>
       </div>
     </section>
 
     <!-- 4. 制作実績（実績が無い間は、このsectionと nav の .nav-works に hidden を付けて非表示） -->
     <section id="works" class="section">
-      <div class="container section-grid">
-        <h2 class="section-title">制作実績</h2>
-        <div class="section-body">
-          <div class="cards">
-            <!-- 実績1件ごとに article.card を追加 -->
-            <article class="card">
-              <h3><span class="todo">【TODO: 実績名】</span></h3>
-              <p><span class="todo">【TODO: 実績の説明】</span></p>
-            </article>
-          </div>
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title">制作実績</h2>
+          <span class="section-en" aria-hidden="true">Works</span>
+        </div>
+        <div class="rows">
+          <!-- 実績1件ごとに article.row を追加 -->
+          <article class="row">
+            <h3 class="row-title"><span class="todo">【TODO: 実績名】</span></h3>
+            <p class="row-text"><span class="todo">【TODO: 実績の説明】</span></p>
+          </article>
         </div>
       </div>
     </section>
 
     <!-- 5. ご依頼の流れ -->
     <section id="flow" class="section">
-      <div class="container section-grid">
-        <h2 class="section-title">ご依頼の流れ</h2>
-        <div class="section-body">
-          <ol class="flow">
-            <li><span class="flow-num">1</span>ヒアリング</li>
-            <li><span class="flow-num">2</span>お見積り</li>
-            <li><span class="flow-num">3</span>制作</li>
-            <li><span class="flow-num">4</span>公開</li>
-            <li><span class="flow-num">5</span>保守</li>
-          </ol>
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title">ご依頼の流れ</h2>
+          <span class="section-en" aria-hidden="true">Flow</span>
         </div>
+        <ol class="flow">
+          <li><span class="flow-num">1</span>ヒアリング</li>
+          <li><span class="flow-num">2</span>お見積り</li>
+          <li><span class="flow-num">3</span>制作</li>
+          <li><span class="flow-num">4</span>公開</li>
+          <li><span class="flow-num">5</span>保守</li>
+        </ol>
       </div>
     </section>
 
     <!-- 6. 料金の目安 -->
     <section id="price" class="section">
-      <div class="container section-grid">
-        <h2 class="section-title">料金の目安</h2>
-        <div class="section-body">
-          <dl class="price">
-            <div class="price-row">
-              <dt>事務代行</dt>
-              <dd><span class="todo">【TODO: 事務代行の料金】</span>円〜</dd>
-            </div>
-            <div class="price-row">
-              <dt>Webアプリ開発</dt>
-              <dd><span class="todo">【TODO: Webアプリ開発の料金】</span>円〜</dd>
-            </div>
-            <div class="price-row">
-              <dt>Webサイト制作</dt>
-              <dd><span class="todo">【TODO: Webサイト制作の料金】</span>円〜</dd>
-            </div>
-          </dl>
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title">料金の目安</h2>
+          <span class="section-en" aria-hidden="true">Price</span>
         </div>
+        <dl class="price">
+          <div class="price-row">
+            <dt>事務代行</dt>
+            <dd><span class="todo">【TODO: 事務代行の料金】</span>円〜</dd>
+          </div>
+          <div class="price-row">
+            <dt>Webアプリ開発</dt>
+            <dd><span class="todo">【TODO: Webアプリ開発の料金】</span>円〜</dd>
+          </div>
+          <div class="price-row">
+            <dt>Webサイト制作</dt>
+            <dd><span class="todo">【TODO: Webサイト制作の料金】</span>円〜</dd>
+          </div>
+        </dl>
       </div>
     </section>
 
     <!-- 7. プロフィール -->
     <section id="profile" class="section">
-      <div class="container section-grid">
-        <h2 class="section-title">プロフィール</h2>
-        <div class="section-body">
-          <dl class="profile">
-            <div class="profile-row">
-              <dt>屋号</dt>
-              <dd>つむぎワークス（Tsumugi Works）</dd>
-            </div>
-            <div class="profile-row">
-              <dt>代表者</dt>
-              <dd><span class="todo">【TODO: 代表者名】</span></dd>
-            </div>
-            <div class="profile-row">
-              <dt>経歴</dt>
-              <dd><span class="todo">【TODO: 経歴】</span></dd>
-            </div>
-          </dl>
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title">プロフィール</h2>
+          <span class="section-en" aria-hidden="true">Profile</span>
         </div>
+        <dl class="profile">
+          <div class="profile-row">
+            <dt>屋号</dt>
+            <dd>つむぎワークス（Tsumugi Works）</dd>
+          </div>
+          <div class="profile-row">
+            <dt>代表者</dt>
+            <dd><span class="todo">【TODO: 代表者名】</span></dd>
+          </div>
+          <div class="profile-row">
+            <dt>経歴</dt>
+            <dd><span class="todo">【TODO: 経歴】</span></dd>
+          </div>
+        </dl>
       </div>
     </section>
 
     <!-- 8. お問い合わせ -->
     <section id="contact" class="section section-contact">
-      <div class="container section-grid">
-        <h2 class="section-title">お問い合わせ</h2>
-        <div class="section-body">
-          <!-- href="#" を GoogleフォームURL に差し替え -->
-          <a href="#" class="btn btn-light" target="_blank" rel="noopener">お問い合わせフォーム</a>
-          <p class="contact-note"><span class="todo">【TODO: GoogleフォームURL】</span></p>
-          <p class="contact-mail">メール：<span class="todo">【TODO: メールアドレス】</span></p>
+      <div class="container">
+        <div class="section-head">
+          <h2 class="section-title">お問い合わせ</h2>
+          <span class="section-en" aria-hidden="true">Contact</span>
         </div>
+        <!-- href="#" を GoogleフォームURL に差し替え -->
+        <a href="#" class="btn btn-light" target="_blank" rel="noopener">お問い合わせフォーム</a>
+        <p class="contact-note"><span class="todo">【TODO: GoogleフォームURL】</span></p>
+        <p class="contact-mail">メール：<span class="todo">【TODO: メールアドレス】</span></p>
       </div>
     </section>
 
